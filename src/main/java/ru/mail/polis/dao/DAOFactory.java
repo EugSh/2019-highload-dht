@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.jetbrains.annotations.NotNull;
+import ru.mail.polis.dao.shkalev.MySuperDAO;
 
 /**
  * Custom {@link DAO} factory.
@@ -53,6 +54,6 @@ public final class DAOFactory {
             throw new IllegalArgumentException("Path is not a directory: " + data);
         }
 
-        throw new IllegalStateException("Not implemented yet");
+        return new MySuperDAO(1024*1024, data);
     }
 }
