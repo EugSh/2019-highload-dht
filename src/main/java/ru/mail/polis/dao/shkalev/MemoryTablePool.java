@@ -34,7 +34,7 @@ public class MemoryTablePool implements Table, Closeable {
 
     @NotNull
     @Override
-    public Iterator<Row> iterator(@NotNull ByteBuffer from) throws IOException {
+    public Iterator<Row> iterator(@NotNull final ByteBuffer from) throws IOException {
         lock.readLock().lock();
         final List<Iterator<Row>> iteratorList;
         try {
@@ -46,7 +46,9 @@ public class MemoryTablePool implements Table, Closeable {
     }
 
     @Override
-    public void upsert(@NotNull ByteBuffer key, @NotNull ByteBuffer value, @NotNull AtomicInteger fileIndex) throws IOException {
+    public void upsert(@NotNull final ByteBuffer key,
+                       @NotNull final ByteBuffer value,
+                       @NotNull final AtomicInteger fileIndex) throws IOException {
         if (stop.get()) {
             throw new IllegalStateException("Already stopped");
         }
@@ -56,7 +58,8 @@ public class MemoryTablePool implements Table, Closeable {
     }
 
     @Override
-    public void remove(@NotNull ByteBuffer key, @NotNull AtomicInteger fileIndex) throws IOException {
+    public void remove(@NotNull final ByteBuffer key,
+                       @NotNull final AtomicInteger fileIndex) throws IOException {
         if (stop.get()) {
             throw new IllegalStateException("Already stopped");
         }
@@ -66,6 +69,7 @@ public class MemoryTablePool implements Table, Closeable {
 
     @Override
     public void clear() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -126,7 +130,7 @@ public class MemoryTablePool implements Table, Closeable {
         compacting.set(false);
     }
 
-    private void enqueueFlush(@NotNull AtomicInteger fileIndex) {
+    private void enqueueFlush(@NotNull final AtomicInteger fileIndex) {
         if (current.sizeInBytes() >= maxHeap) {
             TableToFlush table = null;
             int index = 0;
@@ -162,9 +166,5 @@ public class MemoryTablePool implements Table, Closeable {
         } finally {
             lock.writeLock().unlock();
         }
-    }
-
-    boolean flushQueueEmpty() {
-        return flushQueue.isEmpty();
     }
 }

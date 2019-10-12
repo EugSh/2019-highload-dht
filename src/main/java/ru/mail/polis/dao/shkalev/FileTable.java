@@ -1,6 +1,5 @@
 package ru.mail.polis.dao.shkalev;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;

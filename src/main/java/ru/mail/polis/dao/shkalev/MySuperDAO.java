@@ -9,7 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.NavigableMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,6 +20,8 @@ import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.Iterators;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.mail.polis.Record;
 import ru.mail.polis.dao.DAO;
 
@@ -27,6 +32,7 @@ public class MySuperDAO implements DAO {
     private final AtomicInteger fileIndex = new AtomicInteger(0);
     private final NavigableMap<Integer, Table> tables;
     private final Worker worker;
+    private final Logger log = LoggerFactory.getLogger(MySuperDAO.class);
 
     static final ByteBuffer TOMBSTONE = ByteBuffer.allocate(0);
     static final int ALIVE = 1;
@@ -62,7 +68,7 @@ public class MySuperDAO implements DAO {
                 } catch (InterruptedException e) {
                     interrupt();
                 } catch (IOException e) {
-                    System.err.println("flushing");
+                    log.error("flushing");
                 }
             }
         }
