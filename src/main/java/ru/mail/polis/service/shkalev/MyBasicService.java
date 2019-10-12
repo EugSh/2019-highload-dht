@@ -39,7 +39,7 @@ public class MyBasicService extends HttpServer implements Service {
         return config;
     }
 
-    /***
+    /**
      *
      * @param request The request object in which the information is stored:
      *                the type of request (PUT, GET, DELETE) and the request body
