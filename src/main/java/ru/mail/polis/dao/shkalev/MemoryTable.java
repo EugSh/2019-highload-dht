@@ -16,13 +16,13 @@ public class MemoryTable implements Table {
 
     @NotNull
     @Override
-    public Iterator<Row> iterator(@NotNull ByteBuffer from) throws IOException {
+    public Iterator<Row> iterator(@NotNull final ByteBuffer from) throws IOException {
         return memTable.tailMap(from).values().iterator();
     }
 
     @Override
-    public void upsert(@NotNull ByteBuffer key, @NotNull ByteBuffer value,
-                       @NotNull AtomicInteger fileIndex) throws IOException {
+    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value,
+                       @NotNull final AtomicInteger fileIndex) throws IOException {
         final Row previousRow = memTable.put(key, Row.of(fileIndex.get(), key, value, MySuperDAO.ALIVE));
         if (previousRow == null) {
             currentHeap.addAndGet(Integer.BYTES
@@ -37,8 +37,8 @@ public class MemoryTable implements Table {
     }
 
     @Override
-    public void remove(@NotNull ByteBuffer key,
-                       @NotNull AtomicInteger fileIndex) throws IOException {
+    public void remove(@NotNull final ByteBuffer key,
+                       @NotNull final AtomicInteger fileIndex) throws IOException {
         final Row removedRow = memTable.put(key, Row.of(fileIndex.get(), key, MySuperDAO.TOMBSTONE, MySuperDAO.DEAD));
         if (removedRow == null) {
             currentHeap.addAndGet(Integer.BYTES

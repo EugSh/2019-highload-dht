@@ -1,9 +1,11 @@
 package ru.mail.polis.dao.shkalev;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.NoSuchElementException;
 
 public class NoSuchElementExceptionLite extends NoSuchElementException {
-    public NoSuchElementExceptionLite(String s) {
+    public NoSuchElementExceptionLite(@NotNull final String s) {
         super(s);
     }
 
@@ -20,8 +22,10 @@ public class NoSuchElementExceptionLite extends NoSuchElementException {
      * @see Throwable#printStackTrace()
      */
     @Override
-    public synchronized Throwable fillInStackTrace() {
-        return this;
+    public Throwable fillInStackTrace() {
+        synchronized (this){
+            return this;
+        }
     }
 }
 

@@ -79,15 +79,15 @@ class FileTable implements Table{
     }
 
     @Override
-    public void upsert(@NotNull ByteBuffer key,
-                       @NotNull ByteBuffer value,
-                       @NotNull AtomicInteger fileIndex) throws IOException {
+    public void upsert(@NotNull final ByteBuffer key,
+                       @NotNull final ByteBuffer value,
+                       @NotNull final AtomicInteger fileIndex) throws IOException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void remove(@NotNull ByteBuffer key,
-                       @NotNull AtomicInteger fileIndex) throws IOException {
+    public void remove(@NotNull final ByteBuffer key,
+                       @NotNull final AtomicInteger fileIndex) throws IOException {
         throw new UnsupportedOperationException();
     }
 
