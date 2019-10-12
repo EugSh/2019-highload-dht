@@ -39,6 +39,13 @@ public class MyBasicService extends HttpServer implements Service {
         return config;
     }
 
+    /***
+     *
+     * @param request The request object in which the information is stored:
+     *                the type of request (PUT, GET, DELETE) and the request body
+     * @param id Record ID is equivalent to the key in dao
+     * @return returns a response depending on the type of request and id
+     */
     @Path("/v0/entity")
     public Response entity(@NotNull final Request request,
                            @Param("id") final String id) {
