@@ -120,7 +120,7 @@ public class MemoryTablePool implements Table, Closeable {
         TableToFlush table;
         lock.writeLock().lock();
         try {
-            table = new TableToFlush(current, fileIndex.getAndAdd(1), true, true);
+            table = new TableToFlush(current, fileIndex.getAndAdd(1), false, true);
             tableForFlush.put(table.getFileIndex(), table.getTable());
             current = new MemoryTable();
         } finally {

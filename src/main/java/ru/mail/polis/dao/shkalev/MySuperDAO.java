@@ -32,7 +32,7 @@ public class MySuperDAO implements DAO {
     private final File rootDir;
     private final AtomicInteger fileIndex = new AtomicInteger(0);
     private final NavigableMap<Integer, Table> tables;
-    private Worker worker;
+    private final Worker worker;
 
     static final ByteBuffer TOMBSTONE = ByteBuffer.allocate(0);
     static final int ALIVE = 1;
@@ -145,12 +145,5 @@ public class MySuperDAO implements DAO {
     @Override
     public void compact() throws IOException {
         memoryTable.compact();
-        try {
-            worker.join();
-        } catch (InterruptedException e) {
-            log.error("InterruptedException during dao compact");
-            Thread.currentThread().interrupt();
-        }
-        worker = new Worker();
     }
 }
