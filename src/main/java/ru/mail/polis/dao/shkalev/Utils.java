@@ -39,7 +39,7 @@ final class Utils {
      */
     static Table compactFiles(@NotNull final File rootDir,
                               @NotNull final NavigableMap<Integer, Table> fileTables) throws IOException {
-        final List<Iterator<Row>> tableIterators = new LinkedList<>();
+        final List<Iterator<Row>> tableIterators = new ArrayList<>();
         for (final Table fileT : fileTables.values()) {
             tableIterators.add(fileT.iterator(LEAST_KEY));
         }
@@ -134,7 +134,7 @@ final class Utils {
     static List<Iterator<Row>> getListIterators(@NotNull final NavigableMap<Integer, Table> tables,
                                                 @NotNull final Table memTable,
                                                 @NotNull final ByteBuffer from) throws IOException {
-        final List<Iterator<Row>> tableIterators = new LinkedList<>();
+        final List<Iterator<Row>> tableIterators = new ArrayList<>();
         for (final Table fileT : tables.descendingMap().values()) {
             tableIterators.add(fileT.iterator(from));
         }
