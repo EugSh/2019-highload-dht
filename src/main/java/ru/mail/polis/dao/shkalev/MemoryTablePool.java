@@ -41,8 +41,8 @@ public class MemoryTablePool implements Table, Closeable {
     @NotNull
     @Override
     public Iterator<Row> iterator(@NotNull final ByteBuffer from) throws IOException {
-        lock.readLock().lock();
         final List<Iterator<Row>> iteratorList;
+        lock.readLock().lock();
         try {
             iteratorList = Utils.getListIterators(tableForFlush, current, from);
         } finally {
@@ -98,8 +98,8 @@ public class MemoryTablePool implements Table, Closeable {
         if (!stop.compareAndSet(false, true)) {
             return;
         }
-        lock.writeLock().lock();
         TableToFlush table;
+        lock.writeLock().lock();
         try {
             table = new TableToFlush(current, fileIndex.get(), true);
         } finally {
@@ -117,8 +117,8 @@ public class MemoryTablePool implements Table, Closeable {
         if (!compacting.compareAndSet(false, true)) {
             return;
         }
-        lock.writeLock().lock();
         TableToFlush table;
+        lock.writeLock().lock();
         try {
             table = new TableToFlush(current, fileIndex.getAndAdd(1), true, true);
             tableForFlush.put(table.getFileIndex(), table.getTable());
