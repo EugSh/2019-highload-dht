@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.NoSuchElementException;
 
+@SuppressWarnings ( "serial" )
 public class NoSuchElementExceptionLite extends NoSuchElementException {
     public NoSuchElementExceptionLite(@NotNull final String s) {
         super(s);
