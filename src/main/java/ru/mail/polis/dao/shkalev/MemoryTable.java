@@ -26,10 +26,12 @@ public class MemoryTable implements Table {
         final Row previousRow = memTable.put(key, Row.of(fileIndex.get(), key, value, MySuperDAO.ALIVE));
         if (previousRow == null) {
             currentHeap.addAndGet(Integer.BYTES
-                    + (long) (key.remaining() + MySuperDAO.LINK_SIZE
-                                + Integer.BYTES * MySuperDAO.NUMBER_FIELDS_BYTEBUFFER)
-                    + (long) (value.remaining() + MySuperDAO.LINK_SIZE
-                                + Integer.BYTES * MySuperDAO.NUMBER_FIELDS_BYTEBUFFER)
+                    + (long) (key.remaining()
+                    + MySuperDAO.LINK_SIZE
+                    + Integer.BYTES * MySuperDAO.NUMBER_FIELDS_BYTEBUFFER)
+                    + (long) (value.remaining()
+                    + MySuperDAO.LINK_SIZE
+                    + Integer.BYTES * MySuperDAO.NUMBER_FIELDS_BYTEBUFFER)
                     + Integer.BYTES);
         } else {
             currentHeap.addAndGet(value.remaining() - previousRow.getValue().remaining());
@@ -42,10 +44,11 @@ public class MemoryTable implements Table {
         final Row removedRow = memTable.put(key, Row.of(fileIndex.get(), key, MySuperDAO.TOMBSTONE, MySuperDAO.DEAD));
         if (removedRow == null) {
             currentHeap.addAndGet(Integer.BYTES
-                    + (long) (key.remaining() + MySuperDAO.LINK_SIZE
-                                + Integer.BYTES * MySuperDAO.NUMBER_FIELDS_BYTEBUFFER)
+                    + (long) (key.remaining()
+                    + MySuperDAO.LINK_SIZE
+                    + Integer.BYTES * MySuperDAO.NUMBER_FIELDS_BYTEBUFFER)
                     + (long) (MySuperDAO.LINK_SIZE
-                                + Integer.BYTES * MySuperDAO.NUMBER_FIELDS_BYTEBUFFER)
+                    + Integer.BYTES * MySuperDAO.NUMBER_FIELDS_BYTEBUFFER)
                     + Integer.BYTES);
         } else if (!removedRow.isDead()) {
             currentHeap.addAndGet(-removedRow.getValue().remaining());

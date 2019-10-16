@@ -27,12 +27,12 @@ import ru.mail.polis.dao.DAO;
 
 public class MySuperDAO implements DAO {
     private static final int MODEL = Integer.parseInt(System.getProperty("sun.arch.data.model"));
+    private static final Logger log = LoggerFactory.getLogger(MySuperDAO.class);
     private final MemoryTablePool memoryTable;
     private final File rootDir;
     private final AtomicInteger fileIndex = new AtomicInteger(0);
     private final NavigableMap<Integer, Table> tables;
-    private final Worker worker;
-    private final Logger log = LoggerFactory.getLogger(MySuperDAO.class);
+    private Worker worker;
 
     static final ByteBuffer TOMBSTONE = ByteBuffer.allocate(0);
     static final int ALIVE = 1;
@@ -57,18 +57,20 @@ public class MySuperDAO implements DAO {
                     final TableToFlush table = memoryTable.takeToFlush();
                     dump(table.getTable(), table.getFileIndex());
                     compacting = table.isCompacting();
-                    if (compacting){
+                    if (compacting) {
                         final Table compactingTable = Utils.compactFiles(rootDir, tables);
                         tables.clear();
-                        fileIndex.set(0);
+                        fileIndex.set(Utils.START_FILE_INDEX + 1);
                         tables.put(fileIndex.get(), compactingTable);
+                        memoryTable.compacted();
                     }
                     poisoned = table.isPoisonPill();
                     memoryTable.flushed(table.getFileIndex());
                 } catch (InterruptedException e) {
+                    log.error("InterruptedException during flushing file");
                     interrupt();
                 } catch (IOException e) {
-                    log.error("flushing");
+                    log.error("IOException during flushing file");
                 }
             }
         }
@@ -132,13 +134,13 @@ public class MySuperDAO implements DAO {
         try {
             worker.join();
         } catch (InterruptedException e) {
+            log.error("InterruptedException during dao close");
             Thread.currentThread().interrupt();
         }
     }
 
     /**
      * Perform compaction.
-     * NotThreadSafe
      */
     @Override
     public void compact() throws IOException {
@@ -146,7 +148,9 @@ public class MySuperDAO implements DAO {
         try {
             worker.join();
         } catch (InterruptedException e) {
+            log.error("InterruptedException during dao compact");
             Thread.currentThread().interrupt();
         }
+        worker = new Worker();
     }
 }

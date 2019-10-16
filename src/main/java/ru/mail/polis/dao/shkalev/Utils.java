@@ -21,8 +21,8 @@ import ru.mail.polis.dao.Iters;
 
 final class Utils {
     private static final String TMP = ".tmp";
-    private static final int START_FILE_INDEX = 0;
     private static final ByteBuffer LEAST_KEY = MySuperDAO.LEAST_KEY;
+    static final int START_FILE_INDEX = 0;
 
     private Utils() {
     }
