@@ -4,8 +4,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.NoSuchElementException;
 
-@SuppressWarnings ( "serial" )
+
 public class NoSuchElementExceptionLite extends NoSuchElementException {
+    private static final long serialVersionUID = -4008061748549415840L;
+
     public NoSuchElementExceptionLite(@NotNull final String s) {
         super(s);
     }
