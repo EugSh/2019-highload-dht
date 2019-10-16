@@ -57,6 +57,7 @@ class FileTable implements Table {
      * @return file iterator
      * @throws IOException if an I/O error is thrown by a read method
      */
+    @Override
     @NotNull
     public Iterator<Row> iterator(@NotNull final ByteBuffer from) throws IOException {
         return new Iterator<>() {
