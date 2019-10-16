@@ -1,6 +1,8 @@
 package ru.mail.polis.dao.shkalev;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -18,6 +20,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MemoryTablePool implements Table, Closeable {
+    private static final Logger log = LoggerFactory.getLogger(MemoryTablePool.class);
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final long maxHeap;
     private final NavigableMap<Integer, Table> tableForFlush;
@@ -105,12 +108,13 @@ public class MemoryTablePool implements Table, Closeable {
         try {
             flushQueue.put(table);
         } catch (InterruptedException e) {
+            log.error("InterruptedException during dao close");
             Thread.currentThread().interrupt();
         }
     }
 
-    void compact(){
-        if (!compacting.compareAndSet(false, true)){
+    void compact() {
+        if (!compacting.compareAndSet(false, true)) {
             return;
         }
         lock.writeLock().lock();
@@ -125,11 +129,12 @@ public class MemoryTablePool implements Table, Closeable {
         try {
             flushQueue.put(table);
         } catch (InterruptedException e) {
+            log.error("InterruptedException during dao compact");
             Thread.currentThread().interrupt();
         }
     }
 
-    public void compacted(){
+    void compacted() {
         compacting.set(false);
     }
 
@@ -152,6 +157,7 @@ public class MemoryTablePool implements Table, Closeable {
                 try {
                     flushQueue.put(table);
                 } catch (InterruptedException e) {
+                    log.error("InterruptedException during enqueueFlush");
                     Thread.currentThread().interrupt();
                 }
             }

@@ -12,8 +12,11 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-class FileTable implements Table{
+class FileTable implements Table {
+    private static final Logger log = LoggerFactory.getLogger(FileTable.class);
     private final int count;
     private final int fileIndex;
     private final ByteBuffer rows;
@@ -71,6 +74,7 @@ class FileTable implements Table{
                 try {
                     row = getRowAt(index++);
                 } catch (IOException e) {
+                    log.error("IOException in fileIndex: " + fileIndex);
                     e.printStackTrace();
                 }
                 return row;
@@ -96,6 +100,7 @@ class FileTable implements Table{
         try {
             Files.delete(file.toPath());
         } catch (IOException e) {
+            log.error("IOException during deletion in fileIndex: " + fileIndex);
             e.printStackTrace();
         }
     }
