@@ -75,8 +75,7 @@ class FileTable implements Table {
                 try {
                     row = getRowAt(index++);
                 } catch (IOException e) {
-                    log.error("IOException in fileIndex: " + fileIndex);
-                    e.printStackTrace();
+                    log.error("IOException in fileIndex: " + fileIndex, e);
                 }
                 return row;
             }
@@ -101,8 +100,7 @@ class FileTable implements Table {
         try {
             Files.delete(file.toPath());
         } catch (IOException e) {
-            log.error("IOException during deletion in fileIndex: " + fileIndex);
-            e.printStackTrace();
+            log.error("IOException during deletion in fileIndex: " + fileIndex, e);
         }
     }
 

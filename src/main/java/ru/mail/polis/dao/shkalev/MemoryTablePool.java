@@ -108,7 +108,7 @@ public class MemoryTablePool implements Table, Closeable {
         try {
             flushQueue.put(table);
         } catch (InterruptedException e) {
-            log.error("InterruptedException during dao close");
+            log.error("InterruptedException during dao close", e);
             Thread.currentThread().interrupt();
         }
     }
@@ -129,7 +129,7 @@ public class MemoryTablePool implements Table, Closeable {
         try {
             flushQueue.put(table);
         } catch (InterruptedException e) {
-            log.error("InterruptedException during dao compact");
+            log.error("InterruptedException during dao compact", e);
             Thread.currentThread().interrupt();
         }
     }
@@ -157,7 +157,7 @@ public class MemoryTablePool implements Table, Closeable {
                 try {
                     flushQueue.put(table);
                 } catch (InterruptedException e) {
-                    log.error("InterruptedException during enqueueFlush");
+                    log.error("InterruptedException during enqueueFlush", e);
                     Thread.currentThread().interrupt();
                 }
             }
