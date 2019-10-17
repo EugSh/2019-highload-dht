@@ -67,10 +67,10 @@ public class MySuperDAO implements DAO {
                     poisoned = table.isPoisonPill();
                     memoryTable.flushed(table.getFileIndex());
                 } catch (InterruptedException e) {
-                    log.error("InterruptedException during flushing file");
+                    log.error("InterruptedException during flushing file", e);
                     interrupt();
                 } catch (IOException e) {
-                    log.error("IOException during flushing file");
+                    log.error("IOException during flushing file", e);
                 }
             }
         }
@@ -134,7 +134,7 @@ public class MySuperDAO implements DAO {
         try {
             worker.join();
         } catch (InterruptedException e) {
-            log.error("InterruptedException during dao close");
+            log.error("InterruptedException during dao close", e);
             Thread.currentThread().interrupt();
         }
     }
