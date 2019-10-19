@@ -59,7 +59,7 @@ public class TransferChunks {
     }
 
     /**
-     * Last chunk.
+     * Method for getting last chunk.
      *
      * @return byte array last chunk.
      */
