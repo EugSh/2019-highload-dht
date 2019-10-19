@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import ru.mail.polis.Record;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Iterator;
 
 public class TransferChunks {
@@ -63,7 +64,7 @@ public class TransferChunks {
      * @return byte array last chunk.
      */
     byte[] end() {
-        return END;
+        return Arrays.copyOf(END, END.length);
     }
 
     private static byte[] toArray(@NotNull final ByteBuffer byteBuffer) {
