@@ -69,6 +69,7 @@ public class MyAsyncService extends HttpServer implements Service {
                        @Param("id") final String id) throws IOException {
         if (id == null || id.isEmpty()) {
             session.sendError(Response.BAD_REQUEST, "No Id");
+            return;
         }
         final ByteBuffer key = ByteBuffer.wrap(id.getBytes(Charsets.UTF_8));
         switch (request.getMethod()) {
@@ -123,9 +124,11 @@ public class MyAsyncService extends HttpServer implements Service {
                          @Param("end") final String end) throws IOException {
         if (start == null || start.isEmpty()) {
             session.sendError(Response.BAD_REQUEST, "No start");
+            return;
         }
         if (end != null && end.isEmpty()) {
             session.sendError(Response.BAD_REQUEST, "end is empty");
+            return;
         }
         final ByteBuffer from = ByteBuffer.wrap(start.getBytes(Charsets.UTF_8));
         final ByteBuffer to = end == null ? null : ByteBuffer.wrap(end.getBytes(Charsets.UTF_8));
