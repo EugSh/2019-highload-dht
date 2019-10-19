@@ -107,7 +107,7 @@ public class MyAsyncService extends HttpServer implements Service {
     }
 
     /**
-     * resourse for range values
+     * Resource for range values.
      *
      * @param request The request object in which the information is stored:
      *                the type of request (PUT, GET, DELETE) and the request body.
