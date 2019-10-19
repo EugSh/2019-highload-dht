@@ -13,12 +13,19 @@ public class TransferChunks {
     private static final byte[] NEW_LINE = "\n".getBytes(Charsets.UTF_8);
     private static final byte[] END = "0\r\n\r\n".getBytes(Charsets.UTF_8);
 
+    /**
+     * Wrapper over iterator to get chunks.
+     *
+     * @param iterator Record iterator.
+     */
     TransferChunks(@NotNull final Iterator<Record> iterator) {
         this.iterator = iterator;
     }
 
     /**
-     * @return
+     * Method for getting next chunk.
+     *
+     * @return byte array of chunk.
      */
     public byte[] next() {
         assert hasNext();
@@ -50,6 +57,11 @@ public class TransferChunks {
         return iterator.hasNext();
     }
 
+    /**
+     * Last chunk.
+     *
+     * @return byte array last chunk.
+     */
     byte[] end() {
         return END;
     }

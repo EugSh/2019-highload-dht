@@ -30,6 +30,8 @@ public class MyAsyncService extends HttpServer implements Service {
     private final Executor executor;
 
     /**
+     * Async Http Rest Service.
+     *
      * @param port     port for HttpServer
      * @param dao      LSMDao
      * @param executor executor for async working
@@ -53,6 +55,8 @@ public class MyAsyncService extends HttpServer implements Service {
     }
 
     /**
+     * Main resource for httpServer.
+     *
      * @param request The request object in which the information is stored:
      *                the type of request (PUT, GET, DELETE) and the request body.
      * @param session HttpSession
@@ -85,6 +89,8 @@ public class MyAsyncService extends HttpServer implements Service {
     }
 
     /**
+     * Resource for getting status.
+     *
      * @param request The request object in which the information is stored:
      *                the type of request (PUT, GET, DELETE) and the request body.
      * @param session HttpSession
@@ -96,7 +102,7 @@ public class MyAsyncService extends HttpServer implements Service {
     }
 
     @Override
-    public HttpSession createSession(Socket socket) throws RejectedSessionException {
+    public HttpSession createSession(@NotNull final Socket socket) throws RejectedSessionException {
         return new StorageSession(socket, this);
     }
 
