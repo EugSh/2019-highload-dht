@@ -29,6 +29,12 @@ public class MyAsyncService extends HttpServer implements Service {
     private final DAO dao;
     private final Executor executor;
 
+    /**
+     * @param port     port for HttpServer
+     * @param dao      LSMDao
+     * @param executor executor for async working
+     * @throws IOException in init server
+     */
     public MyAsyncService(final int port, @NotNull final DAO dao, @NotNull final Executor executor) throws IOException {
         super(getConfig(port));
         this.dao = dao;
@@ -47,12 +53,11 @@ public class MyAsyncService extends HttpServer implements Service {
     }
 
     /**
-     * Main resource for access.
-     *
      * @param request The request object in which the information is stored:
      *                the type of request (PUT, GET, DELETE) and the request body.
+     * @param session HttpSession
      * @param id      Record ID is equivalent to the key in dao.
-     * @return returns a response depending on the type of request and id.
+     * @throws IOException where send in session.
      */
     @Path("/v0/entity")
     public void entity(@NotNull final Request request,
@@ -79,6 +84,12 @@ public class MyAsyncService extends HttpServer implements Service {
 
     }
 
+    /**
+     * @param request The request object in which the information is stored:
+     *                the type of request (PUT, GET, DELETE) and the request body.
+     * @param session HttpSession
+     * @throws IOException where send in session.
+     */
     @Path("/v0/status")
     public void entity(@NotNull final Request request, @NotNull final HttpSession session) throws IOException {
         session.sendResponse(new Response(Response.OK, Response.EMPTY));
@@ -89,6 +100,16 @@ public class MyAsyncService extends HttpServer implements Service {
         return new StorageSession(socket, this);
     }
 
+    /**
+     * resourse for range values
+     *
+     * @param request The request object in which the information is stored:
+     *                the type of request (PUT, GET, DELETE) and the request body.
+     * @param session HttpSession.
+     * @param start   start key for range.
+     * @param end     end key for range.
+     * @throws IOException where send in session.
+     */
     @Path("/v0/entities")
     public void entities(@NotNull final Request request,
                          @NotNull final HttpSession session,

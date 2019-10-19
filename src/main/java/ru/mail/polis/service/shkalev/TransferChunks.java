@@ -17,6 +17,9 @@ public class TransferChunks {
         this.iterator = iterator;
     }
 
+    /**
+     * @return
+     */
     public byte[] next() {
         assert hasNext();
         final Record record = iterator.next();
