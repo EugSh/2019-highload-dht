@@ -17,6 +17,7 @@
 package ru.mail.polis.service;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -24,7 +25,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import ru.mail.polis.dao.DAO;
-import ru.mail.polis.service.shkalev.MyAsyncService;
+import ru.mail.polis.service.shkalev.ConsistentHashingTopology;
+import ru.mail.polis.service.shkalev.ShardedService;
+import ru.mail.polis.service.shkalev.Topology;
 
 /**
  * Constructs {@link Service} instances.
@@ -48,7 +51,8 @@ public final class ServiceFactory {
     @NotNull
     public static Service create(
             final int port,
-            @NotNull final DAO dao) throws IOException {
+            @NotNull final DAO dao,
+            final Set<String> topology) throws IOException {
         if (Runtime.getRuntime().maxMemory() > MAX_HEAP) {
             throw new IllegalStateException("The heap is too big. Consider setting Xmx.");
         }
@@ -57,8 +61,13 @@ public final class ServiceFactory {
             throw new IllegalArgumentException("Port out of range");
         }
 
+        final Topology<String> hashTopology = new ConsistentHashingTopology<>(topology,
+                "http://localhost:" + port,
+                ConsistentHashingTopology.defaultLeft,
+                ConsistentHashingTopology.defaultRight,
+                ConsistentHashingTopology::defaultHash);
         final Executor executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
                 new ThreadFactoryBuilder().setNameFormat("asyncWorker").build());
-        return new MyAsyncService(port, dao, executor);
+        return new ShardedService<>(port, dao, executor, hashTopology);
     }
 }
