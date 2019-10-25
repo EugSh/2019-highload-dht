@@ -63,8 +63,8 @@ public final class ServiceFactory {
 
         final Topology<String> hashTopology = new ConsistentHashingTopology<>(topology,
                 "http://localhost:" + port,
-                ConsistentHashingTopology.defaultLeft,
-                ConsistentHashingTopology.defaultRight,
+                ConsistentHashingTopology.DEFAULT_LEFT,
+                ConsistentHashingTopology.DEFAULT_RIGHT,
                 ConsistentHashingTopology::defaultHash);
         final Executor executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
                 new ThreadFactoryBuilder().setNameFormat("asyncWorker").build());

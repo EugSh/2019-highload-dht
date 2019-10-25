@@ -1,7 +1,15 @@
 package ru.mail.polis.service.shkalev;
 
 import com.google.common.base.Charsets;
-import one.nio.http.*;
+import one.nio.http.HttpException;
+import one.nio.http.HttpSession;
+import one.nio.http.Param;
+import one.nio.http.Path;
+import one.nio.http.Request;
+import one.nio.http.Response;
+import one.nio.http.HttpClient;
+import one.nio.http.HttpServer;
+import one.nio.http.HttpServerConfig;
 import one.nio.net.ConnectionString;
 import one.nio.net.Socket;
 import one.nio.pool.PoolException;
@@ -18,6 +26,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Executor;
 
@@ -26,7 +35,7 @@ public class ShardedService<T> extends HttpServer implements Service {
     private final DAO dao;
     private final Executor executor;
     private final Topology<T> topology;
-    private final HashMap<T, HttpClient> pool;
+    private final Map<T, HttpClient> pool;
 
     /**
      * Async sharded Http Rest Service.
