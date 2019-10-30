@@ -25,7 +25,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import ru.mail.polis.dao.DAO;
-import ru.mail.polis.service.shkalev.ConsistentHashingTopology;
+import ru.mail.polis.service.shkalev.Ring;
 import ru.mail.polis.service.shkalev.ShardedService;
 import ru.mail.polis.service.shkalev.Topology;
 
@@ -61,13 +61,11 @@ public final class ServiceFactory {
             throw new IllegalArgumentException("Port out of range");
         }
 
-        final Topology<String> hashTopology = new ConsistentHashingTopology<>(topology,
+        final Topology<String> ring = new Ring(topology,
                 "http://localhost:" + port,
-                ConsistentHashingTopology.DEFAULT_LEFT,
-                ConsistentHashingTopology.DEFAULT_RIGHT,
-                ConsistentHashingTopology::defaultHash);
+                3);
         final Executor executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
                 new ThreadFactoryBuilder().setNameFormat("asyncWorker").build());
-        return new ShardedService<>(port, dao, executor, hashTopology);
+        return new ShardedService<>(port, dao, executor, ring);
     }
 }

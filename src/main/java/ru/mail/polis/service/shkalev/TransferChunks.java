@@ -51,7 +51,6 @@ public class TransferChunks {
         chunkBuff.put(value);
         chunkBuff.put(SEPARATOR);
         return chunk;
-
     }
 
     public boolean hasNext() {
@@ -73,5 +72,4 @@ public class TransferChunks {
         copy.get(array);
         return array;
     }
-
 }

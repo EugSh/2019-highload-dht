@@ -15,6 +15,5 @@
 !.codeclimate.yml
 !wrk/*
 
-
 # ...even if they are in subdirectories
 !*/

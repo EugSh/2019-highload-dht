@@ -111,7 +111,6 @@ public class ShardedService<T> extends HttpServer implements Service {
                 session.sendError(Response.METHOD_NOT_ALLOWED, "Method not allowed");
                 break;
         }
-
     }
 
     /**
