@@ -12,10 +12,17 @@ public class Ring implements Topology<String> {
     private final String[] nodes;
     private final String myNode;
 
+    /**
+     * Ring for consistent hashing.
+     *
+     * @param servers         set of all node servers.
+     * @param me              own server node.
+     * @param duplicateFactor the number of copies of each node.
+     */
     public Ring(@NotNull final Set<String> servers,
                 @NotNull final String me,
                 final int duplicateFactor) {
-        int countNodes = duplicateFactor * servers.size();
+        final int countNodes = duplicateFactor * servers.size();
         nodes = new String[servers.size()];
         leftBorder = new int[countNodes];
         nodeIndexes = new int[countNodes];
@@ -30,12 +37,12 @@ public class Ring implements Topology<String> {
     }
 
     @Override
-    public String primaryFor(@NotNull ByteBuffer key) {
+    public String primaryFor(final @NotNull ByteBuffer key) {
         return nodes[nodeIndexes[binSearch(leftBorder, key.hashCode())]];
     }
 
     @Override
-    public boolean isMe(@NotNull String node) {
+    public boolean isMe(final @NotNull String node) {
         return myNode.equals(node);
     }
 
@@ -44,11 +51,11 @@ public class Ring implements Topology<String> {
         return Set.of(nodes);
     }
 
-    private int binSearch(int[] array, int key) {
+    private int binSearch(final int[] array, final int key) {
         int left = 0;
         int right = array.length - 1;
         while (left < right) {
-            int mid = left + (right - left) / 2;
+            final int mid = left + (right - left) / 2;
             if (array[mid] <= key) {
                 if (array[mid + 1] > key) {
                     return mid;
