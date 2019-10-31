@@ -37,12 +37,12 @@ public class Ring implements Topology<String> {
     }
 
     @Override
-    public String primaryFor(final @NotNull ByteBuffer key) {
+    public String primaryFor(@NotNull final ByteBuffer key) {
         return nodes[nodeIndexes[binSearch(leftBorder, key.hashCode())]];
     }
 
     @Override
-    public boolean isMe(final @NotNull String node) {
+    public boolean isMe(@NotNull final String node) {
         return myNode.equals(node);
     }
 
