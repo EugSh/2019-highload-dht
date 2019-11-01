@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import ru.mail.polis.Record;
 import ru.mail.polis.dao.DAO;
 
-public class MySuperDAO implements DAO {
+public class MySuperDAO implements AdvancedDAO {
     private static final int MODEL = Integer.parseInt(System.getProperty("sun.arch.data.model"));
     private static final Logger log = LoggerFactory.getLogger(MySuperDAO.class);
     private final MemoryTablePool memoryTable;
@@ -42,6 +42,21 @@ public class MySuperDAO implements DAO {
     static final ByteBuffer LEAST_KEY = ByteBuffer.allocate(0);
     static final String PREFIX = "FT";
     static final String SUFFIX = ".mydb";
+
+    @Override
+    public Row getRow(@NotNull ByteBuffer key) throws IOException {
+        final Iterator<Row> iter = rowIterator(key);
+        if (!iter.hasNext()) {
+            throw new NoSuchElementExceptionLite("Not found");
+        }
+
+        final Row next = iter.next();
+        if (next.getKey().equals(key)) {
+            return next.copy();
+        } else {
+            throw new NoSuchElementExceptionLite("Not found");
+        }
+    }
 
     class Worker extends Thread {
         Worker() {
@@ -107,8 +122,12 @@ public class MySuperDAO implements DAO {
     @NotNull
     @Override
     public Iterator<Record> iterator(@NotNull final ByteBuffer from) throws IOException {
+        return Iterators.transform(Utils.aliveRowIterators(rowIterator(from)), Row::getRecord);
+    }
+
+    private Iterator<Row> rowIterator(@NotNull final ByteBuffer from) throws IOException {
         final List<Iterator<Row>> iteratorList = Utils.getListIterators(tables, memoryTable, from);
-        return Iterators.transform(Utils.getActualRowIterator(iteratorList), Row::getRecord);
+        return Utils.getActualRowIterator(iteratorList);
     }
 
     @Override

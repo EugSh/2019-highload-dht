@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 public class Ring implements Topology<String> {
@@ -42,6 +43,25 @@ public class Ring implements Topology<String> {
     }
 
     @Override
+    public Set<String> primaryFor(@NotNull ByteBuffer key, @NotNull Replicas replicas) {
+        final Set<String> result = new HashSet<>();
+        int startI = binSearch(leftBorder, key.hashCode());
+        while (result.size() < replicas.getFrom()){
+//            System.out.println("node i - "+nodeIndexes.length);
+//            System.out.println("left - " + leftBorder.length);
+//            System.out.println("start -" + startI);
+//            System.out.println(nodeIndexes[startI]);
+            result.add(nodes[nodeIndexes[startI]]);
+            startI++;
+            if (startI == nodeIndexes.length){
+                startI = 0;
+            }
+        }
+        return result;
+    }
+
+
+    @Override
     public boolean isMe(final @NotNull String node) {
         return myNode.equals(node);
     }
@@ -49,6 +69,11 @@ public class Ring implements Topology<String> {
     @Override
     public Set<String> all() {
         return Set.of(nodes);
+    }
+
+    @Override
+    public int size() {
+        return nodes.length;
     }
 
     private int binSearch(final int[] array, final int key) {
@@ -68,4 +93,27 @@ public class Ring implements Topology<String> {
         }
         return left;
     }
+
+//    public static void main(String[] args) {
+//        int[] a = new int[]{0,3,6,9,12};
+//        System.out.println(binSearch1(a,123));
+//    }
+//
+//    private static int binSearch1(final int[] array, final int key) {
+//        int left = 0;
+//        int right = array.length - 1;
+//        while (left < right) {
+//            final int mid = left + (right - left) / 2;
+//            if (array[mid] <= key) {
+//                if (array[mid + 1] > key) {
+//                    return mid;
+//                } else {
+//                    left = mid + 1;
+//                }
+//            } else {
+//                right = mid - 1;
+//            }
+//        }
+//        return left;
+//    }
 }

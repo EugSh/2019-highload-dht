@@ -145,15 +145,18 @@ class FileTable implements Table {
         final int status = rows.getInt(offset);
         offset += Integer.BYTES;
 
+        ByteBuffer valueBB;
         if (status == MySuperDAO.DEAD) {
-            return Row.of(fileIndex, keyBB, MySuperDAO.TOMBSTONE, status);
+            valueBB = MySuperDAO.TOMBSTONE;
         } else {
             //Value
             final int valueSize = rows.getInt(offset);
-            final ByteBuffer valueBB = rows.duplicate().position(offset + Integer.BYTES)
+            valueBB = rows.duplicate().position(offset + Integer.BYTES)
                     .limit(offset + Integer.BYTES + valueSize)
                     .slice();
-            return Row.of(fileIndex, keyBB, valueBB, status);
+            offset += valueSize;
         }
+        final long time = rows.getLong(offset);
+        return Row.of(fileIndex, keyBB, valueBB, status, time);
     }
 }

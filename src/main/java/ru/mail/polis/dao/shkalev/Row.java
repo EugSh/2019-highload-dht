@@ -6,27 +6,50 @@ import org.jetbrains.annotations.NotNull;
 
 import ru.mail.polis.Record;
 
-final class Row implements Comparable<Row> {
+public final class Row implements Comparable<Row> {
     private final int index;
     private final ByteBuffer key;
     private final ByteBuffer value;
+    private final long time;
     private final int status;
+
+    public long getTime() {
+        return time;
+    }
 
     private Row(final int index,
                 @NotNull final ByteBuffer key,
                 @NotNull final ByteBuffer value,
-                final int status) {
+                final int status,
+                final long time) {
         this.index = index;
         this.key = key;
         this.value = value;
         this.status = status;
+        this.time = time;
+    }
+
+    public static Row of(final int index,
+                         @NotNull final ByteBuffer key,
+                         @NotNull final ByteBuffer value,
+                         final int status,
+                         final long time) {
+        return new Row(index, key, value, status, time);
     }
 
     public static Row of(final int index,
                          @NotNull final ByteBuffer key,
                          @NotNull final ByteBuffer value,
                          final int status) {
-        return new Row(index, key, value, status);
+        return new Row(index, key, value, status, Utils.currentTimeNanos());
+    }
+
+    public Row copy() {
+        return new Row(index,
+                key.duplicate().asReadOnlyBuffer(),
+                value.duplicate().asReadOnlyBuffer(),
+                status,
+                time);
     }
 
     /**
@@ -34,7 +57,7 @@ final class Row implements Comparable<Row> {
      *
      * @return Record
      */
-    Record getRecord() {
+    public Record getRecord() {
         if (isDead()) {
             return Record.of(key, MySuperDAO.TOMBSTONE);
         } else {
@@ -42,19 +65,19 @@ final class Row implements Comparable<Row> {
         }
     }
 
-    boolean isDead() {
+    public boolean isDead() {
         return status == MySuperDAO.DEAD;
     }
 
-    ByteBuffer getKey() {
+    public ByteBuffer getKey() {
         return key.asReadOnlyBuffer();
     }
 
-    ByteBuffer getValue() {
+    public ByteBuffer getValue() {
         return value.asReadOnlyBuffer();
     }
 
-    int getIndex() {
+    public int getIndex() {
         return index;
     }
 
