@@ -64,7 +64,7 @@ public final class ServiceFactory {
         final Topology<String> ring = new Ring(topology,
                 "http://localhost:" + port,
                 3);
-        final Executor executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
+        final Executor executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2,
                 new ThreadFactoryBuilder().setNameFormat("asyncWorker").build());
         return new ShardedService<>(port, dao, executor, ring);
     }
