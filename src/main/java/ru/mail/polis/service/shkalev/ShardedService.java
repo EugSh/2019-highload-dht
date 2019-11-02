@@ -48,7 +48,7 @@ public class ShardedService<T> extends HttpServer implements Service {
                           @NotNull final Topology<T> nodes) throws IOException {
         super(getConfig(port));
         this.dao = (AdvancedDAO) dao;
-        Map<T, HttpClient> pool = new HashMap<>();
+        final Map<T, HttpClient> pool = new HashMap<>();
         this.quorum = Replicas.quorum(nodes.size());
         for (final T node : nodes.all()) {
             if (nodes.isMe(node)) {

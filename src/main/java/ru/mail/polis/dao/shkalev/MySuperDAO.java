@@ -45,14 +45,14 @@ public class MySuperDAO implements AdvancedDAO {
 
     @Override
     public Row getRow(@NotNull final ByteBuffer key) throws IOException {
-        final Row row = RowBy(key);
+        final Row row = rowBy(key);
         if (row == null) {
             throw new NoSuchElementExceptionLite("Not found");
         }
         return row;
     }
 
-    private Row RowBy(@NonNull final ByteBuffer key) throws IOException {
+    private Row rowBy(@NonNull final ByteBuffer key) throws IOException {
         final Iterator<Row> iter = rowIterator(key);
         Row row = null;
         if (iter.hasNext()) {
