@@ -43,13 +43,13 @@ public class Ring implements Topology<String> {
     }
 
     @Override
-    public Set<String> primaryFor(@NotNull ByteBuffer key, @NotNull Replicas replicas) {
+    public Set<String> primaryFor(@NotNull final ByteBuffer key, @NotNull final Replicas replicas) {
         final Set<String> result = new HashSet<>();
         int startI = binSearch(leftBorder, key.hashCode());
-        while (result.size() < replicas.getFrom()){
+        while (result.size() < replicas.getFrom()) {
             result.add(nodes[nodeIndexes[startI]]);
             startI++;
-            if (startI == nodeIndexes.length){
+            if (startI == nodeIndexes.length) {
                 startI = 0;
             }
         }

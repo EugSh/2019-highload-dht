@@ -23,7 +23,6 @@ import com.google.common.collect.Iterators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.mail.polis.Record;
-import ru.mail.polis.dao.DAO;
 
 public class MySuperDAO implements AdvancedDAO {
     private static final int MODEL = Integer.parseInt(System.getProperty("sun.arch.data.model"));
@@ -44,7 +43,7 @@ public class MySuperDAO implements AdvancedDAO {
     static final String SUFFIX = ".mydb";
 
     @Override
-    public Row getRow(@NotNull ByteBuffer key) throws IOException {
+    public Row getRow(@NotNull final ByteBuffer key) throws IOException {
         final Iterator<Row> iter = rowIterator(key);
         if (!iter.hasNext()) {
             throw new NoSuchElementExceptionLite("Not found");

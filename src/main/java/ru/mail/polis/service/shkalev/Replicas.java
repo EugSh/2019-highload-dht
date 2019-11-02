@@ -2,7 +2,7 @@ package ru.mail.polis.service.shkalev;
 
 import org.jetbrains.annotations.NotNull;
 
-public class Replicas {
+final public class Replicas {
     private final int ack;
     private final int from;
 
@@ -15,8 +15,14 @@ public class Replicas {
         return new Replicas(count / 2 + 1, count);
     }
 
+    /**
+     * Method for parse string of replicas.
+     *
+     * @param replicas string "ack/from".
+     * @return Replicas.
+     */
     public static Replicas parse(@NotNull final String replicas) {
-        final int iSeparator = replicas.indexOf("/");
+        final int iSeparator = replicas.indexOf('/');
         final String ask = replicas.substring(0, iSeparator);
         final String from = replicas.substring(iSeparator + 1);
         return new Replicas(Integer.parseInt(ask), Integer.parseInt(from));

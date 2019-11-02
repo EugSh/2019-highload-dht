@@ -26,7 +26,14 @@ import ru.mail.polis.service.Service;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.Comparator;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -39,6 +46,7 @@ public class ShardedService<T> extends HttpServer implements Service {
     private final Map<T, HttpClient> pool;
     private final Replicas quorum;
     private static final String NOT_ENOUGH_REPLICAS = "504 Not Enough Replicas";
+    private static final String IO_EXCEPTION_MSG = "IOException on session send error";
 
     /**
      * Async sharded Http Rest Service.
@@ -239,7 +247,7 @@ public class ShardedService<T> extends HttpServer implements Service {
                 try {
                     session.sendError(Response.INTERNAL_ERROR, "");
                 } catch (IOException ex) {
-                    log.error("IOException on session send error", e);
+                    log.error(IO_EXCEPTION_MSG, e);
                 }
             }
         });
@@ -265,7 +273,7 @@ public class ShardedService<T> extends HttpServer implements Service {
                     session.sendResponse(new Response(NOT_ENOUGH_REPLICAS, Response.EMPTY));
                     return;
                 }
-                Comparator<Map.Entry<Response, Integer>> comparator = Comparator.comparingInt(e -> e.getValue());
+                final Comparator<Map.Entry<Response, Integer>> comparator = Comparator.comparingInt(e -> e.getValue());
                 final Map.Entry<Response, Integer> codesCount = result.stream()
                         .collect(Collectors.toMap(Function.identity(),
                                 r -> 1,
@@ -279,7 +287,7 @@ public class ShardedService<T> extends HttpServer implements Service {
                 try {
                     session.sendError(Response.INTERNAL_ERROR, "");
                 } catch (IOException ex) {
-                    log.error("IOException on session send error", e);
+                    log.error(IO_EXCEPTION_MSG, e);
                 }
             }
         });
@@ -292,7 +300,7 @@ public class ShardedService<T> extends HttpServer implements Service {
         request.addHeader(ServiceUtils.PROXY_HEADER);
         final Set<T> nodes = topology.primaryFor(key, replicas);
         final List<Response> result = new ArrayList<>(nodes.size());
-        for (T node : nodes) {
+        for (final T node : nodes) {
             if (topology.isMe(node)) {
                 result.add(localAction.action());
             } else {
@@ -316,7 +324,7 @@ public class ShardedService<T> extends HttpServer implements Service {
                     request,
                     key,
                     replicas);
-            long countPutKeys = result.stream()
+            final long countPutKeys = result.stream()
                     .filter(node -> node.getHeaders()[0].equals(Response.CREATED))
                     .count();
             acceptReplicas(countPutKeys,
@@ -343,7 +351,7 @@ public class ShardedService<T> extends HttpServer implements Service {
             try {
                 session.sendError(Response.INTERNAL_ERROR, "");
             } catch (IOException ex) {
-                log.error("IOException on session send error", e);
+                log.error(IO_EXCEPTION_MSG, e);
             }
         }
     }
@@ -358,11 +366,13 @@ public class ShardedService<T> extends HttpServer implements Service {
             return;
         }
         executor.execute(() -> {
-            List<Response> result = executeReplication(() -> delete(key),
+            final List<Response> result = executeReplication(() -> delete(key),
                     request,
                     key,
                     replicas);
-            final long countDeleted = result.stream().filter(node -> node.getHeaders()[0].equals(Response.ACCEPTED)).count();
+            final long countDeleted = result.stream()
+                    .filter(node -> node.getHeaders()[0].equals(Response.ACCEPTED))
+                    .count();
             acceptReplicas(countDeleted,
                     session,
                     new Response(Response.ACCEPTED, Response.EMPTY),

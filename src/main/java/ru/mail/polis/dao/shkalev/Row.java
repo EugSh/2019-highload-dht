@@ -44,6 +44,11 @@ public final class Row implements Comparable<Row> {
         return new Row(index, key, value, status, Utils.currentTimeNanos());
     }
 
+    /**
+     * Method for copy row.
+     *
+     * @return copy of this row.
+     */
     public Row copy() {
         return new Row(index,
                 key.duplicate().asReadOnlyBuffer(),

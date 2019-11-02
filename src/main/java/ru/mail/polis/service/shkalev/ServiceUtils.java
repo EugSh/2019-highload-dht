@@ -4,7 +4,7 @@ import one.nio.http.Request;
 import one.nio.http.Response;
 import org.jetbrains.annotations.NotNull;
 
-class ServiceUtils {
+final class ServiceUtils {
     static final String PROXY_HEADER = "Is-Proxy: True";
     static final String TIME_HEADER = "Timestamp: ";
 
