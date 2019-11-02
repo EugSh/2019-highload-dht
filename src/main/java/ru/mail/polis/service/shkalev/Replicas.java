@@ -2,7 +2,7 @@ package ru.mail.polis.service.shkalev;
 
 import org.jetbrains.annotations.NotNull;
 
-final public class Replicas {
+public final class Replicas {
     private final int ack;
     private final int from;
 

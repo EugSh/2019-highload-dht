@@ -1,7 +1,6 @@
 package ru.mail.polis.service.shkalev;
 
 import com.google.common.base.Charsets;
-import one.nio.http.HttpException;
 import one.nio.http.HttpSession;
 import one.nio.http.Param;
 import one.nio.http.Path;
@@ -12,7 +11,6 @@ import one.nio.http.HttpServer;
 import one.nio.http.HttpServerConfig;
 import one.nio.net.ConnectionString;
 import one.nio.net.Socket;
-import one.nio.pool.PoolException;
 import one.nio.server.AcceptorConfig;
 import one.nio.server.RejectedSessionException;
 import org.jetbrains.annotations.NotNull;
@@ -21,32 +19,20 @@ import org.slf4j.LoggerFactory;
 import ru.mail.polis.Record;
 import ru.mail.polis.dao.DAO;
 import ru.mail.polis.dao.shkalev.AdvancedDAO;
-import ru.mail.polis.dao.shkalev.Row;
 import ru.mail.polis.service.Service;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.Comparator;
-import java.util.List;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.Executor;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class ShardedService<T> extends HttpServer implements Service {
     private static final Logger log = LoggerFactory.getLogger(ShardedService.class);
     private final AdvancedDAO dao;
-    private final Executor executor;
-    private final Topology<T> topology;
-    private final Map<T, HttpClient> pool;
     private final Replicas quorum;
-    private static final String NOT_ENOUGH_REPLICAS = "504 Not Enough Replicas";
-    private static final String IO_EXCEPTION_MSG = "IOException on session send error";
+    private final Replicator<T> replicator;
 
     /**
      * Async sharded Http Rest Service.
@@ -62,17 +48,16 @@ public class ShardedService<T> extends HttpServer implements Service {
                           @NotNull final Topology<T> nodes) throws IOException {
         super(getConfig(port));
         this.dao = (AdvancedDAO) dao;
-        this.executor = executor;
-        this.topology = nodes;
-        this.pool = new HashMap<>();
+        Map<T, HttpClient> pool = new HashMap<>();
         this.quorum = Replicas.quorum(nodes.size());
         for (final T node : nodes.all()) {
-            if (topology.isMe(node)) {
+            if (nodes.isMe(node)) {
                 continue;
             }
             assert !pool.containsKey(node);
             pool.put(node, new HttpClient(new ConnectionString(node + "?timeout=100")));
         }
+        replicator = new Replicator<T>(nodes, executor, pool, this.dao);
     }
 
     private static HttpServerConfig getConfig(final int port) {
@@ -106,21 +91,21 @@ public class ShardedService<T> extends HttpServer implements Service {
             return;
         }
         final boolean isProxy = ServiceUtils.isProxied(request);
-        final Replicas r = isProxy || replicas == null ? quorum : Replicas.parse(replicas);
-        if (r.getAck() > r.getFrom() || r.getAck() <= 0) {
+        final Replicas rf = isProxy || replicas == null ? quorum : Replicas.parse(replicas);
+        if (rf.getAck() > rf.getFrom() || rf.getAck() <= 0) {
             session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
             return;
         }
         final ByteBuffer key = ByteBuffer.wrap(id.getBytes(Charsets.UTF_8));
         switch (request.getMethod()) {
             case Request.METHOD_GET:
-                executeGet(session, request, key, isProxy, r);
+                replicator.executeGet(session, request, key, isProxy, rf);
                 break;
             case Request.METHOD_PUT:
-                executePut(session, request, key, isProxy, r);
+                replicator.executePut(session, request, key, isProxy, rf);
                 break;
             case Request.METHOD_DELETE:
-                executeDelete(session, request, key, isProxy, r);
+                replicator.executeDelete(session, request, key, isProxy, rf);
                 break;
             default:
                 session.sendError(Response.METHOD_NOT_ALLOWED, "Method not allowed");
@@ -183,201 +168,5 @@ public class ShardedService<T> extends HttpServer implements Service {
     @Override
     public void handleDefault(@NotNull final Request request, @NotNull final HttpSession session) throws IOException {
         session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
-    }
-
-    private Response get(@NotNull final ByteBuffer key) {
-        final Row row;
-        try {
-            row = dao.getRow(key);
-            if (row.isDead()) {
-                final Response response = new Response(Response.NOT_FOUND, Response.EMPTY);
-                response.addHeader(ServiceUtils.TIME_HEADER + row.getTime());
-                return response;
-            }
-            final byte[] body = new byte[row.getValue().remaining()];
-            row.getValue().get(body);
-            final Response response = new Response(Response.OK, body);
-            response.addHeader(ServiceUtils.TIME_HEADER + row.getTime());
-            return response;
-        } catch (NoSuchElementException e) {
-            return new Response(Response.NOT_FOUND, Response.EMPTY);
-        } catch (IOException e) {
-            log.error("Cant get from dao", e);
-            return new Response(Response.INTERNAL_ERROR, Response.EMPTY);
-        }
-    }
-
-    private Response put(@NotNull final Request request,
-                         @NotNull final ByteBuffer key) {
-        try {
-            dao.upsert(key, ByteBuffer.wrap(request.getBody()));
-            return new Response(Response.CREATED, Response.EMPTY);
-        } catch (IOException e) {
-            log.error("Cant upsert into dao", e);
-            return new Response(Response.INTERNAL_ERROR, Response.EMPTY);
-        }
-    }
-
-    private Response delete(@NotNull final ByteBuffer key) {
-        try {
-            dao.remove(key);
-            return new Response(Response.ACCEPTED, Response.EMPTY);
-        } catch (IOException e) {
-            log.error("Cant remove from dao", e);
-            return new Response(Response.INTERNAL_ERROR, Response.EMPTY);
-        }
-    }
-
-    private Response proxy(@NotNull final T node, @NotNull final Request request) {
-        assert !topology.isMe(node);
-        try {
-            return pool.get(node).invoke(request);
-        } catch (InterruptedException | PoolException | HttpException | IOException e) {
-            log.error("Cant proxy", e);
-            return new Response(Response.INTERNAL_ERROR, Response.EMPTY);
-        }
-    }
-
-    private void executeAsync(@NotNull final HttpSession session,
-                              @NotNull final Action action) {
-        executor.execute(() -> {
-            try {
-                session.sendResponse(action.action());
-            } catch (IOException e) {
-                try {
-                    session.sendError(Response.INTERNAL_ERROR, "");
-                } catch (IOException ex) {
-                    log.error(IO_EXCEPTION_MSG, e);
-                }
-            }
-        });
-    }
-
-    private void executeGet(@NotNull final HttpSession session,
-                            @NotNull final Request request,
-                            @NotNull final ByteBuffer key,
-                            final boolean isProxy,
-                            @NotNull final Replicas replicas) {
-        if (isProxy) {
-            executeAsync(session, () -> get(key));
-            return;
-        }
-        executor.execute(() -> {
-            final List<Response> result = executeReplication(() -> get(key),
-                    request,
-                    key,
-                    replicas).stream().filter(ServiceUtils::validResponse).collect(Collectors.toList());
-            try {
-                if (result.size() < replicas.getAck()) {
-
-                    session.sendResponse(new Response(NOT_ENOUGH_REPLICAS, Response.EMPTY));
-                    return;
-                }
-                final Comparator<Map.Entry<Response, Integer>> comparator = Comparator.comparingInt(e -> e.getValue());
-                final Map.Entry<Response, Integer> codesCount = result.stream()
-                        .collect(Collectors.toMap(Function.identity(),
-                                r -> 1,
-                                Integer::sum))
-                        .entrySet()
-                        .stream()
-                        .max(comparator.thenComparingLong(e -> ServiceUtils.getTimeStamp(e.getKey())))
-                        .get();
-                session.sendResponse(codesCount.getKey());
-            } catch (IOException e) {
-                try {
-                    session.sendError(Response.INTERNAL_ERROR, "");
-                } catch (IOException ex) {
-                    log.error(IO_EXCEPTION_MSG, e);
-                }
-            }
-        });
-    }
-
-    private List<Response> executeReplication(@NotNull final Action localAction,
-                                              @NotNull final Request request,
-                                              @NotNull final ByteBuffer key,
-                                              @NotNull final Replicas replicas) {
-        request.addHeader(ServiceUtils.PROXY_HEADER);
-        final Set<T> nodes = topology.primaryFor(key, replicas);
-        final List<Response> result = new ArrayList<>(nodes.size());
-        for (final T node : nodes) {
-            if (topology.isMe(node)) {
-                result.add(localAction.action());
-            } else {
-                result.add(proxy(node, request));
-            }
-        }
-        return result;
-    }
-
-    private void executePut(@NotNull final HttpSession session,
-                            @NotNull final Request request,
-                            @NotNull final ByteBuffer key,
-                            final boolean isProxy,
-                            @NotNull final Replicas replicas) {
-        if (isProxy) {
-            executeAsync(session, () -> put(request, key));
-            return;
-        }
-        executor.execute(() -> {
-            final List<Response> result = executeReplication(() -> put(request, key),
-                    request,
-                    key,
-                    replicas);
-            final long countPutKeys = result.stream()
-                    .filter(node -> node.getHeaders()[0].equals(Response.CREATED))
-                    .count();
-            acceptReplicas(countPutKeys,
-                    session,
-                    new Response(Response.CREATED, Response.EMPTY),
-                    new Response(NOT_ENOUGH_REPLICAS, Response.EMPTY),
-                    replicas);
-        });
-    }
-
-    private void acceptReplicas(final long countAck,
-                                @NotNull final HttpSession session,
-                                @NotNull final Response successfulResponse,
-                                @NotNull final Response faildReplicas,
-                                @NotNull final Replicas replicas) {
-        try {
-            if (countAck >= replicas.getAck()) {
-                session.sendResponse(successfulResponse);
-
-            } else {
-                session.sendResponse(faildReplicas);
-            }
-        } catch (IOException e) {
-            try {
-                session.sendError(Response.INTERNAL_ERROR, "");
-            } catch (IOException ex) {
-                log.error(IO_EXCEPTION_MSG, e);
-            }
-        }
-    }
-
-    private void executeDelete(@NotNull final HttpSession session,
-                               @NotNull final Request request,
-                               @NotNull final ByteBuffer key,
-                               final boolean isProxy,
-                               @NotNull final Replicas replicas) {
-        if (isProxy) {
-            executeAsync(session, () -> delete(key));
-            return;
-        }
-        executor.execute(() -> {
-            final List<Response> result = executeReplication(() -> delete(key),
-                    request,
-                    key,
-                    replicas);
-            final long countDeleted = result.stream()
-                    .filter(node -> node.getHeaders()[0].equals(Response.ACCEPTED))
-                    .count();
-            acceptReplicas(countDeleted,
-                    session,
-                    new Response(Response.ACCEPTED, Response.EMPTY),
-                    new Response(NOT_ENOUGH_REPLICAS, Response.EMPTY),
-                    replicas);
-        });
     }
 }

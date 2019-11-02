@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.Iterators;
@@ -44,17 +45,21 @@ public class MySuperDAO implements AdvancedDAO {
 
     @Override
     public Row getRow(@NotNull final ByteBuffer key) throws IOException {
-        final Iterator<Row> iter = rowIterator(key);
-        if (!iter.hasNext()) {
+        final Row row = RowBy(key);
+        if (row == null) {
             throw new NoSuchElementExceptionLite("Not found");
         }
+        return row;
+    }
 
-        final Row next = iter.next();
-        if (next.getKey().equals(key)) {
-            return next.copy();
-        } else {
-            throw new NoSuchElementExceptionLite("Not found");
+    private Row RowBy(@NonNull final ByteBuffer key) throws IOException {
+        final Iterator<Row> iter = rowIterator(key);
+        Row row = null;
+        if (iter.hasNext()) {
+            row = iter.next();
+            row = row.getKey().equals(key) ? row : null;
         }
+        return row;
     }
 
     class Worker extends Thread {
