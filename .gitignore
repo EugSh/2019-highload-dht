@@ -15,6 +15,7 @@
 !.codeclimate.yml
 !wrk/*
 !wrk/stage5/*
+!wrk/stage6/*
 
 # ...even if they are in subdirectories
 !*/
