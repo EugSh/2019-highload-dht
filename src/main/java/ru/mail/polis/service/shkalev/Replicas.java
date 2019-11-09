@@ -4,13 +4,12 @@ import org.jetbrains.annotations.NotNull;
 
 public final class Replicas {
     private final int ack;
+    private final int from;
 
     @Override
     public String toString() {
         return ack + "/" + from;
     }
-
-    private final int from;
 
     private Replicas(final int ack, final int from) {
         this.ack = ack;

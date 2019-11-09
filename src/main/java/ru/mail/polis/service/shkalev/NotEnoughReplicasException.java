@@ -1,5 +1,7 @@
 package ru.mail.polis.service.shkalev;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Collection;
 
 public class NotEnoughReplicasException extends RuntimeException {
@@ -7,7 +9,7 @@ public class NotEnoughReplicasException extends RuntimeException {
 
     private final Collection<Throwable> errors;
 
-    public NotEnoughReplicasException(Collection<Throwable> errors) {
+    NotEnoughReplicasException(@NotNull final Collection<Throwable> errors) {
         this.errors = errors;
     }
 

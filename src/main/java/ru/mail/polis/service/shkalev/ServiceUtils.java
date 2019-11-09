@@ -10,15 +10,15 @@ import java.net.http.HttpResponse;
 final class ServiceUtils {
     static final String PROXY_HEADER = "Is-Proxy";
     static final String VALUE_PROXY_HEADER = "True";
-    static final String TIME_HEADER = "timestamp";
-    static final String SEP_HEADER = ":";
+    private static final String TIME_HEADER = "timestamp";
+    private static final String SEP_HEADER = ":";
     private static final int CREATED = 201;
     private static final int ACCEPTED = 202;
     private static final int NOT_REPLICAS = 504;
     private static final int OK = 200;
     private static final int NOT_FOUND = 404;
     private static final int BAD_REQUEST = 400;
-    public static final int INTERNAL_ERROR = 500;
+    private static final int INTERNAL_ERROR = 500;
     static final String NOT_ENOUGH_REPLICAS = "504 Not Enough Replicas";
 
     private ServiceUtils() {
@@ -66,11 +66,12 @@ final class ServiceUtils {
                 return Response.BAD_REQUEST;
             case INTERNAL_ERROR:
                 return Response.INTERNAL_ERROR;
+            default:
+                throw new UnsupportedOperationException("Unsupported code status - " + status);
         }
-        throw new UnsupportedOperationException("Unsupported code status - " + status);
     }
 
-    static Response parse(HttpResponse<byte[]> response) {
+    static Response parse(@NotNull final HttpResponse<byte[]> response) {
         final Response result = new Response(statusOf(response.statusCode()), response.body());
         result.addHeader(TIME_HEADER + SEP_HEADER + getTimeStamp(response));
         return result;

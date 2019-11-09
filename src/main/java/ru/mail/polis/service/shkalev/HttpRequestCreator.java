@@ -1,6 +1,5 @@
 package ru.mail.polis.service.shkalev;
 
-import com.google.common.base.Charsets;
 import one.nio.http.Request;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,15 +12,17 @@ import java.time.Duration;
 public class HttpRequestCreator {
     private final Replicas rf;
     private final String key;
-    private final byte[] body;
+    private byte[] body;
     private final int codeStatus;
     private final static Duration TIME_OUT = Duration.ofSeconds(1);
 
-    public HttpRequestCreator(@NotNull final Replicas rf, @NotNull final ByteBuffer key, final byte[] body, final int codeStatus) {
+    HttpRequestCreator(@NotNull final Replicas rf, @NotNull final ByteBuffer key,
+                       @NotNull final Request request, final int codeStatus) {
         this.key = StandardCharsets.UTF_8.decode(key).toString();
         this.rf = rf;
-        this.body = body;
+        this.body = request.getBody();
         this.codeStatus = codeStatus;
+
     }
 
     HttpRequest create(@NotNull final Address address) {
@@ -32,8 +33,9 @@ public class HttpRequestCreator {
                 return put(address);
             case Request.METHOD_DELETE:
                 return delete(address);
+            default:
+                throw new UnsupportedOperationException("Unsupported code status");
         }
-        throw new UnsupportedOperationException("Unsupported code status");
     }
 
     private HttpRequest get(@NotNull final Address address) {

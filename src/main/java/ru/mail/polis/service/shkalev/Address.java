@@ -11,12 +11,12 @@ public class Address implements Comparable<Address> {
     private final String host;
     private final int port;
 
-    public Address(@NotNull final String host, final int port) {
+    Address(@NotNull final String host, final int port) {
         this.host = host;
         this.port = port;
     }
 
-    public Address(@NotNull final String address) {
+    Address(@NotNull final String address) {
         final String regex = "http.?://.*:";
         final Pattern pattern = Pattern.compile(regex);
         final Matcher matcher = pattern.matcher(address);
@@ -37,12 +37,11 @@ public class Address implements Comparable<Address> {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@NotNull final Object o) {
         if (this == o) return true;
         if (!(o instanceof Address)) return false;
-        Address address = (Address) o;
-        return port == address.port &&
-                host.equals(address.host);
+        final Address address = (Address) o;
+        return port == address.port && host.equals(address.host);
     }
 
     @Override
@@ -56,7 +55,7 @@ public class Address implements Comparable<Address> {
     }
 
     @Override
-    public int compareTo(@NotNull Address address) {
+    public int compareTo(@NotNull final Address address) {
         return Comparator.comparing(Address::toString).compare(this, address);
     }
 }
