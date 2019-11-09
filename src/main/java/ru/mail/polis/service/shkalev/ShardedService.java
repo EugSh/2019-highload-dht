@@ -1,7 +1,6 @@
 package ru.mail.polis.service.shkalev;
 
 import com.google.common.base.Charsets;
-import one.nio.http.HttpException;
 import one.nio.http.HttpSession;
 import one.nio.http.Param;
 import one.nio.http.Path;
@@ -12,7 +11,6 @@ import one.nio.http.HttpServer;
 import one.nio.http.HttpServerConfig;
 import one.nio.net.ConnectionString;
 import one.nio.net.Socket;
-import one.nio.pool.PoolException;
 import one.nio.server.AcceptorConfig;
 import one.nio.server.RejectedSessionException;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.mail.polis.Record;
 import ru.mail.polis.dao.DAO;
+import ru.mail.polis.dao.shkalev.AdvancedDAO;
 import ru.mail.polis.service.Service;
 
 import java.io.IOException;
@@ -27,15 +26,13 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.Executor;
 
 public class ShardedService<T> extends HttpServer implements Service {
     private static final Logger log = LoggerFactory.getLogger(ShardedService.class);
-    private final DAO dao;
-    private final Executor executor;
-    private final Topology<T> topology;
-    private final Map<T, HttpClient> pool;
+    private final AdvancedDAO dao;
+    private final Replicas quorum;
+    private final Replicator<T> replicator;
 
     /**
      * Async sharded Http Rest Service.
@@ -50,17 +47,17 @@ public class ShardedService<T> extends HttpServer implements Service {
                           @NotNull final Executor executor,
                           @NotNull final Topology<T> nodes) throws IOException {
         super(getConfig(port));
-        this.dao = dao;
-        this.executor = executor;
-        this.topology = nodes;
-        this.pool = new HashMap<>();
+        this.dao = (AdvancedDAO) dao;
+        final Map<T, HttpClient> pool = new HashMap<>();
+        this.quorum = Replicas.quorum(nodes.size());
         for (final T node : nodes.all()) {
-            if (topology.isMe(node)) {
+            if (nodes.isMe(node)) {
                 continue;
             }
             assert !pool.containsKey(node);
             pool.put(node, new HttpClient(new ConnectionString(node + "?timeout=100")));
         }
+        replicator = new Replicator<T>(nodes, executor, pool, this.dao);
     }
 
     private static HttpServerConfig getConfig(final int port) {
@@ -77,35 +74,38 @@ public class ShardedService<T> extends HttpServer implements Service {
     /**
      * Main resource for httpServer.
      *
-     * @param request The request object in which the information is stored:
-     *                the type of request (PUT, GET, DELETE) and the request body.
-     * @param session HttpSession
-     * @param id      Record ID is equivalent to the key in dao.
+     * @param request  The request object in which the information is stored:
+     *                 the type of request (PUT, GET, DELETE) and the request body.
+     * @param session  HttpSession
+     * @param id       Record ID is equivalent to the key in dao.
+     * @param replicas Кeplication factor.
      * @throws IOException where send in session.
      */
     @Path("/v0/entity")
     public void entity(@NotNull final Request request,
                        @NotNull final HttpSession session,
-                       @Param("id") final String id) throws IOException {
+                       @Param("id") final String id,
+                       @Param("replicas") final String replicas) throws IOException {
         if (id == null || id.isEmpty()) {
             session.sendError(Response.BAD_REQUEST, "No Id");
             return;
         }
-        final ByteBuffer key = ByteBuffer.wrap(id.getBytes(Charsets.UTF_8));
-        final T node = topology.primaryFor(key);
-        if (!topology.isMe(node)) {
-            executeAsync(session, () -> proxy(node, request));
+        final boolean isProxy = ServiceUtils.isProxied(request);
+        final Replicas rf = isProxy || replicas == null ? quorum : Replicas.parse(replicas);
+        if (rf.getAck() > rf.getFrom() || rf.getAck() <= 0) {
+            session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
             return;
         }
+        final ByteBuffer key = ByteBuffer.wrap(id.getBytes(Charsets.UTF_8));
         switch (request.getMethod()) {
             case Request.METHOD_GET:
-                executeAsync(session, () -> get(key));
+                replicator.executeGet(session, request, key, isProxy, rf);
                 break;
             case Request.METHOD_PUT:
-                executeAsync(session, () -> put(request, key));
+                replicator.executePut(session, request, key, isProxy, rf);
                 break;
             case Request.METHOD_DELETE:
-                executeAsync(session, () -> delete(key));
+                replicator.executeDelete(session, request, key, isProxy, rf);
                 break;
             default:
                 session.sendError(Response.METHOD_NOT_ALLOWED, "Method not allowed");
@@ -168,66 +168,5 @@ public class ShardedService<T> extends HttpServer implements Service {
     @Override
     public void handleDefault(@NotNull final Request request, @NotNull final HttpSession session) throws IOException {
         session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
-    }
-
-    private Response get(@NotNull final ByteBuffer key) {
-        final ByteBuffer value;
-        try {
-            value = dao.get(key).duplicate();
-            final byte[] body = new byte[value.remaining()];
-            value.get(body);
-            return new Response(Response.OK, body);
-        } catch (NoSuchElementException e) {
-            return new Response(Response.NOT_FOUND, Response.EMPTY);
-        } catch (IOException e) {
-            log.error("Cant get from dao", e);
-            return new Response(Response.INTERNAL_ERROR, Response.EMPTY);
-        }
-    }
-
-    private Response put(@NotNull final Request request,
-                         @NotNull final ByteBuffer key) {
-        try {
-            dao.upsert(key, ByteBuffer.wrap(request.getBody()));
-            return new Response(Response.CREATED, Response.EMPTY);
-        } catch (IOException e) {
-            log.error("Cant upsert into dao", e);
-            return new Response(Response.INTERNAL_ERROR, Response.EMPTY);
-        }
-    }
-
-    private Response delete(@NotNull final ByteBuffer key) {
-        try {
-            dao.remove(key);
-            return new Response(Response.ACCEPTED, Response.EMPTY);
-        } catch (IOException e) {
-            log.error("Cant remove from dao", e);
-            return new Response(Response.INTERNAL_ERROR, Response.EMPTY);
-        }
-    }
-
-    private Response proxy(@NotNull final T node, @NotNull final Request request) {
-        assert !topology.isMe(node);
-        try {
-            return pool.get(node).invoke(request);
-        } catch (InterruptedException | PoolException | HttpException | IOException e) {
-            log.error("Cant proxy", e);
-            return new Response(Response.INTERNAL_ERROR, Response.EMPTY);
-        }
-    }
-
-    private void executeAsync(@NotNull final HttpSession session,
-                              @NotNull final Action action) {
-        executor.execute(() -> {
-            try {
-                session.sendResponse(action.action());
-            } catch (IOException e) {
-                try {
-                    session.sendError(Response.INTERNAL_ERROR, "");
-                } catch (IOException ex) {
-                    log.error("IOException on session send error", e);
-                }
-            }
-        });
     }
 }

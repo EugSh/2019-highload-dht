@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 public class Ring implements Topology<String> {
@@ -42,6 +43,20 @@ public class Ring implements Topology<String> {
     }
 
     @Override
+    public Set<String> primaryFor(@NotNull final ByteBuffer key, @NotNull final Replicas replicas) {
+        final Set<String> result = new HashSet<>();
+        int startI = binSearch(leftBorder, key.hashCode());
+        while (result.size() < replicas.getFrom()) {
+            result.add(nodes[nodeIndexes[startI]]);
+            startI++;
+            if (startI == nodeIndexes.length) {
+                startI = 0;
+            }
+        }
+        return result;
+    }
+
+    @Override
     public boolean isMe(final @NotNull String node) {
         return myNode.equals(node);
     }
@@ -49,6 +64,11 @@ public class Ring implements Topology<String> {
     @Override
     public Set<String> all() {
         return Set.of(nodes);
+    }
+
+    @Override
+    public int size() {
+        return nodes.length;
     }
 
     private int binSearch(final int[] array, final int key) {

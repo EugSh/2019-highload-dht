@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.Iterators;
@@ -23,9 +24,8 @@ import com.google.common.collect.Iterators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.mail.polis.Record;
-import ru.mail.polis.dao.DAO;
 
-public class MySuperDAO implements DAO {
+public class MySuperDAO implements AdvancedDAO {
     private static final int MODEL = Integer.parseInt(System.getProperty("sun.arch.data.model"));
     private static final Logger log = LoggerFactory.getLogger(MySuperDAO.class);
     private final MemoryTablePool memoryTable;
@@ -42,6 +42,25 @@ public class MySuperDAO implements DAO {
     static final ByteBuffer LEAST_KEY = ByteBuffer.allocate(0);
     static final String PREFIX = "FT";
     static final String SUFFIX = ".mydb";
+
+    @Override
+    public Row getRow(@NotNull final ByteBuffer key) throws IOException {
+        final Row row = rowBy(key);
+        if (row == null) {
+            throw new NoSuchElementExceptionLite("Not found");
+        }
+        return row;
+    }
+
+    private Row rowBy(@NonNull final ByteBuffer key) throws IOException {
+        final Iterator<Row> iter = rowIterator(key);
+        Row row = null;
+        if (iter.hasNext()) {
+            row = iter.next();
+            row = row.getKey().equals(key) ? row : null;
+        }
+        return row;
+    }
 
     class Worker extends Thread {
         Worker() {
@@ -107,8 +126,12 @@ public class MySuperDAO implements DAO {
     @NotNull
     @Override
     public Iterator<Record> iterator(@NotNull final ByteBuffer from) throws IOException {
+        return Iterators.transform(Utils.aliveRowIterators(rowIterator(from)), Row::getRecord);
+    }
+
+    private Iterator<Row> rowIterator(@NotNull final ByteBuffer from) throws IOException {
         final List<Iterator<Row>> iteratorList = Utils.getListIterators(tables, memoryTable, from);
-        return Iterators.transform(Utils.getActualRowIterator(iteratorList), Row::getRecord);
+        return Utils.getActualRowIterator(iteratorList);
     }
 
     @Override

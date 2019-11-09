@@ -22,6 +22,8 @@ final class Utils {
     private static final String TMP = ".tmp";
     private static final ByteBuffer LEAST_KEY = MySuperDAO.LEAST_KEY;
     static final int START_FILE_INDEX = 0;
+    private static int timeCounter;
+    private static long lastMillis;
 
     private Utils() {
     }
@@ -114,6 +116,7 @@ final class Utils {
                 offset += fc.write(Bytes.fromInt(MySuperDAO.ALIVE));
                 offset += writeByteBuffer(fc, row.getValue()); // row.getValue().getData()
             }
+            offset += fc.write(Bytes.fromLong(row.getTime()));
         }
         return offsets;
     }
@@ -126,8 +129,11 @@ final class Utils {
      */
     static Iterator<Row> getActualRowIterator(@NotNull final Collection<Iterator<Row>> tableIterators) {
         final Iterator<Row> mergingTableIterator = Iterators.mergeSorted(tableIterators, Row::compareTo);
-        final Iterator<Row> collapsedIterator = Iters.collapseEquals(mergingTableIterator, Row::getKey);
-        return Iterators.filter(collapsedIterator, row -> !row.isDead());
+        return Iters.collapseEquals(mergingTableIterator, Row::getKey);
+    }
+
+    static Iterator<Row> aliveRowIterators(@NotNull final Iterator<Row> iterator) {
+        return Iterators.filter(iterator, row -> !row.isDead());
     }
 
     static List<Iterator<Row>> getListIterators(@NotNull final NavigableMap<Integer, Table> tables,
@@ -140,5 +146,16 @@ final class Utils {
         final Iterator<Row> memTableIterator = memTable.iterator(from);
         tableIterators.add(memTableIterator);
         return tableIterators;
+    }
+
+    static long currentTimeNanos() {
+        synchronized (Utils.class) {
+            final var millis = System.currentTimeMillis();
+            if (lastMillis != millis) {
+                lastMillis = millis;
+                timeCounter = 0;
+            }
+            return lastMillis * 1_000_000 + timeCounter++;
+        }
     }
 }
