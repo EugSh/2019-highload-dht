@@ -12,9 +12,9 @@ import java.time.Duration;
 public class HttpRequestCreator {
     private final Replicas rf;
     private final String key;
-    private byte[] body;
+    private final byte[] body;
     private final int codeStatus;
-    private final static Duration TIME_OUT = Duration.ofSeconds(1);
+    private static final Duration TIME_OUT = Duration.ofSeconds(1);
 
     HttpRequestCreator(@NotNull final Replicas rf, @NotNull final ByteBuffer key,
                        @NotNull final Request request, final int codeStatus) {

@@ -60,16 +60,29 @@ public class AsyncReplicator implements Replicator {
     @Override
     public void executeGet(@NotNull final HttpSession session, @NotNull final Request request,
                            @NotNull final ByteBuffer key, final boolean isProxy, @NotNull final Replicas rf) {
-        if (isProxy) {
-            executeAsync(session, () -> get(key));
+        if (codeClimateRefactoring(session, isProxy, () -> get(key))) {
             return;
         }
+//        if (isProxy) {
+//            executeAsync(session, () -> get(key));
+//            return;
+//        }
         final Collection<CompletableFuture<Response>> futures = replication(() -> get(key),
                 topology.primaryFor(key, rf),
                 new HttpRequestCreator(rf, key.duplicate(), request, request.getMethod()));
 
         final CompletableFuture<Collection<Response>> future = collect(futures, rf.getAck());
         sendActualResponse(future, session);
+    }
+
+    private boolean codeClimateRefactoring(@NotNull final HttpSession session,
+                                           final boolean isProxy,
+                                           @NotNull final Action action) {
+        if (isProxy) {
+            executeAsync(session, action);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -89,10 +102,13 @@ public class AsyncReplicator implements Replicator {
     @Override
     public void executeDelete(@NotNull final HttpSession session, @NotNull final Request request,
                               @NotNull final ByteBuffer key, final boolean isProxy, @NotNull final Replicas rf) {
-        if (isProxy) {
-            executeAsync(session, () -> delete(key));
+        if (codeClimateRefactoring(session, isProxy, () -> delete(key))) {
             return;
         }
+//        if (isProxy) {
+//            executeAsync(session, () -> delete(key));
+//            return;
+//        }
         final Collection<CompletableFuture<Response>> futures = replication(() -> delete(key),
                 topology.primaryFor(key, rf),
                 new HttpRequestCreator(rf, key.duplicate(), request, request.getMethod()));
@@ -177,13 +193,13 @@ public class AsyncReplicator implements Replicator {
         });
     }
 
-    private CompletableFuture<Collection<Response>> collect(@NotNull final Collection<CompletableFuture<Response>> futures,
+    private CompletableFuture<Collection<Response>> collect(@NotNull final Collection<CompletableFuture<Response>> f,
                                                             final int min) {
         final Collection<Response> result = new ConcurrentLinkedDeque<>();
         final Collection<Throwable> errors = new ConcurrentLinkedDeque<>();
-        final int maxErrors = futures.size() - min + 1;
+        final int maxErrors = f.size() - min + 1;
         final CompletableFuture<Collection<Response>> future = new CompletableFuture<>();
-        futures.forEach(f -> f.whenCompleteAsync((r, e) -> {
+        f.forEach(fu -> fu.whenCompleteAsync((r, e) -> {
             if (e != null) {
                 errors.add(e);
                 if (errors.size() == maxErrors) {
