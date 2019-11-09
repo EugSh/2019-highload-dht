@@ -6,12 +6,13 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class Ring implements Topology<String> {
+public class Ring implements Topology<Address> {
     private final int[] leftBorder;
     private final int[] nodeIndexes;
-    private final String[] nodes;
-    private final String myNode;
+    private final Address[] nodes;
+    private final Address myNode;
 
     /**
      * Ring for consistent hashing.
@@ -24,11 +25,11 @@ public class Ring implements Topology<String> {
                 @NotNull final String me,
                 final int duplicateFactor) {
         final int countNodes = duplicateFactor * servers.size();
-        nodes = new String[servers.size()];
+        nodes = new Address[servers.size()];
         leftBorder = new int[countNodes];
         nodeIndexes = new int[countNodes];
-        myNode = me;
-        servers.toArray(this.nodes);
+        myNode = new Address(me);
+        servers.stream().map(Address::new).collect(Collectors.toList()).toArray(nodes);
         Arrays.sort(this.nodes);
         final int step = (int) (((long) Integer.MAX_VALUE - (long) Integer.MIN_VALUE + 1) / countNodes);
         for (int i = 0; i < leftBorder.length; i++) {
@@ -38,13 +39,13 @@ public class Ring implements Topology<String> {
     }
 
     @Override
-    public String primaryFor(final @NotNull ByteBuffer key) {
+    public Address primaryFor(final @NotNull ByteBuffer key) {
         return nodes[nodeIndexes[binSearch(leftBorder, key.hashCode())]];
     }
 
     @Override
-    public Set<String> primaryFor(@NotNull final ByteBuffer key, @NotNull final Replicas replicas) {
-        final Set<String> result = new HashSet<>();
+    public Set<Address> primaryFor(@NotNull final ByteBuffer key, @NotNull final Replicas replicas) {
+        final Set<Address> result = new HashSet<>();
         int startI = binSearch(leftBorder, key.hashCode());
         while (result.size() < replicas.getFrom()) {
             result.add(nodes[nodeIndexes[startI]]);
@@ -57,12 +58,12 @@ public class Ring implements Topology<String> {
     }
 
     @Override
-    public boolean isMe(final @NotNull String node) {
+    public boolean isMe(final @NotNull Address node) {
         return myNode.equals(node);
     }
 
     @Override
-    public Set<String> all() {
+    public Set<Address> all() {
         return Set.of(nodes);
     }
 

@@ -4,6 +4,12 @@ import org.jetbrains.annotations.NotNull;
 
 public final class Replicas {
     private final int ack;
+
+    @Override
+    public String toString() {
+        return ack + "/" + from;
+    }
+
     private final int from;
 
     private Replicas(final int ack, final int from) {
@@ -11,7 +17,7 @@ public final class Replicas {
         this.from = from;
     }
 
-    public static Replicas quorum(final int count) {
+    static Replicas quorum(final int count) {
         return new Replicas(count / 2 + 1, count);
     }
 
