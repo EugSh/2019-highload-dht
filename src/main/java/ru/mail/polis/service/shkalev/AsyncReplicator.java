@@ -15,18 +15,21 @@ import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.Set;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Collection;
+import java.util.concurrent.Executor;
+import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.Set;
-import java.util.Comparator;
 
 public class AsyncReplicator implements Replicator {
     private static final String IO_EXCEPTION_MSG = "IOException on session send error";
@@ -73,7 +76,7 @@ public class AsyncReplicator implements Replicator {
     }
 
     private void execGet(@NotNull final HttpSession session,
-                            @NotNull final ByteBuffer key) {
+                         @NotNull final ByteBuffer key) {
         executeAsync(session, () -> get(key));
     }
 
@@ -150,9 +153,10 @@ public class AsyncReplicator implements Replicator {
 
     private void sendError(@NotNull final HttpSession session, @NotNull final Exception e) {
         try {
+            log.error(IO_EXCEPTION_MSG, e);
             session.sendError(Response.INTERNAL_ERROR, "");
         } catch (IOException ex) {
-            log.error(IO_EXCEPTION_MSG, e);
+            log.error(IO_EXCEPTION_MSG, ex);
         }
     }
 
@@ -172,10 +176,14 @@ public class AsyncReplicator implements Replicator {
                 return;
             }
             final Comparator<Map.Entry<Response, Integer>> comparator = Comparator.comparingInt(Map.Entry::getValue);
-            final Map.Entry<Response, Integer> actualResponse = responses.stream()
+            final Optional<Map.Entry<Response, Integer>> actualResponse = responses.stream()
                     .collect(Collectors.toMap(Function.identity(), r -> 1, Integer::sum)).entrySet().stream()
-                    .max(comparator.thenComparingLong(e -> ServiceUtils.getTimeStamp(e.getKey()))).get();
-            sendResponse(session, actualResponse.getKey());
+                    .max(comparator.thenComparingLong(e -> ServiceUtils.getTimeStamp(e.getKey())));
+            if (actualResponse.isPresent()) {
+                sendResponse(session, actualResponse.get().getKey());
+            } else {
+                sendResponse(session, new Response(Response.INTERNAL_ERROR, Response.EMPTY));
+            }
         }).exceptionally(e -> {
             log.error("Sending and merging futures - ", e);
             return null;
@@ -185,18 +193,17 @@ public class AsyncReplicator implements Replicator {
     private CompletableFuture<Collection<Response>> collect(@NotNull final Collection<CompletableFuture<Response>> f,
                                                             final int min) {
         final Collection<Response> result = new ConcurrentLinkedDeque<>();
-        final Collection<Throwable> errors = new ConcurrentLinkedDeque<>();
+        final AtomicInteger errors = new AtomicInteger(0);
         final int maxErrors = f.size() - min + 1;
         final CompletableFuture<Collection<Response>> future = new CompletableFuture<>();
         f.forEach(fu -> fu.whenCompleteAsync((r, e) -> {
             if (e != null) {
-                errors.add(e);
-                if (errors.size() == maxErrors) {
-                    future.completeExceptionally(new NotEnoughReplicasException(errors));
+                if (errors.incrementAndGet() == maxErrors) {
+                    future.completeExceptionally(new RejectedExecutionException(e));
                 }
                 return;
             }
-            if (result.size() >= min) {
+            if (result.size() > min) {
                 return;
             }
             result.add(r);

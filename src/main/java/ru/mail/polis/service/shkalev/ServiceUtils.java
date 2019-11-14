@@ -38,15 +38,16 @@ final class ServiceUtils {
     }
 
     static Response responseFromRow(@NotNull final Row row) {
+        final String headerTs = TIME_HEADER + SEP_HEADER + row.getTime();
         if (row.isDead()) {
             final Response response = new Response(Response.NOT_FOUND, Response.EMPTY);
-            response.addHeader(TIME_HEADER + SEP_HEADER + row.getTime());
+            response.addHeader(headerTs);
             return response;
         }
         final byte[] body = new byte[row.getValue().remaining()];
         row.getValue().get(body);
         final Response response = new Response(Response.OK, body);
-        response.addHeader(TIME_HEADER + SEP_HEADER + row.getTime());
+        response.addHeader(headerTs);
         return response;
     }
 
