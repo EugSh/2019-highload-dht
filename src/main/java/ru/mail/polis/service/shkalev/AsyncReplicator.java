@@ -25,9 +25,10 @@ import java.util.concurrent.Executor;
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -192,7 +193,8 @@ public class AsyncReplicator implements Replicator {
 
     private CompletableFuture<Collection<Response>> collect(@NotNull final Collection<CompletableFuture<Response>> f,
                                                             final int min) {
-        final Collection<Response> result = new ConcurrentLinkedDeque<>();
+        final Collection<Response> res = new ArrayList<>(min);
+        final Lock lock = new ReentrantLock();
         final AtomicInteger errors = new AtomicInteger(0);
         final int maxErrors = f.size() - min + 1;
         final CompletableFuture<Collection<Response>> future = new CompletableFuture<>();
@@ -203,12 +205,17 @@ public class AsyncReplicator implements Replicator {
                 }
                 return;
             }
-            if (result.size() > min) {
-                return;
-            }
-            result.add(r);
-            if (result.size() == min) {
-                future.complete(result);
+            lock.lock();
+            try{
+                if (res.size() >= min){
+                    return;
+                }
+                res.add(r);
+                if (res.size() == min){
+                    future.complete(res);
+                }
+            } finally {
+                lock.unlock();
             }
         }).exceptionally(e -> {
             log.error("Collecting futures error - ", e);
