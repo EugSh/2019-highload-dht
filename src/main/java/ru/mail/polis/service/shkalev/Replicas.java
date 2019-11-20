@@ -6,12 +6,17 @@ public final class Replicas {
     private final int ack;
     private final int from;
 
+    @Override
+    public String toString() {
+        return ack + "/" + from;
+    }
+
     private Replicas(final int ack, final int from) {
         this.ack = ack;
         this.from = from;
     }
 
-    public static Replicas quorum(final int count) {
+    static Replicas quorum(final int count) {
         return new Replicas(count / 2 + 1, count);
     }
 

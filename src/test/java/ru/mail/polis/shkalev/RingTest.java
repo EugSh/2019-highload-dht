@@ -2,6 +2,7 @@ package ru.mail.polis.shkalev;
 
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import ru.mail.polis.service.shkalev.Address;
 import ru.mail.polis.service.shkalev.Replicas;
 import ru.mail.polis.service.shkalev.Ring;
 import ru.mail.polis.service.shkalev.Topology;
@@ -12,6 +13,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RingTest {
+    private final String HOST = "http://test:";
 
     @Test
     @RepeatedTest(1000)
@@ -30,15 +32,15 @@ public class RingTest {
     }
 
     private void uniformDistributionRF(final int keyLen, final int keyCount, final int nodeCount, final int duplicateFactor, final float epsilon, final Replicas rf) {
-        final Topology<String> ring = createTopology(nodeCount, duplicateFactor);
+        final Topology<Address> ring = createTopology(nodeCount, duplicateFactor);
         final Map<String, Integer> counter = new HashMap<>();
         final Random random = new Random();
         for (int i = 0; i < keyCount; i++) {
             final byte[] key = new byte[keyLen];
             random.nextBytes(key);
-            final Set<String> nodes = ring.primaryFor(ByteBuffer.wrap(key), rf);
-            for (final String node : nodes) {
-                counter.compute(node, (k, v) -> v == null ? 1 : v + 1);
+            final Set<Address> nodes = ring.primaryFor(ByteBuffer.wrap(key), rf);
+            for (final Address node : nodes) {
+                counter.compute(node.toString(), (k, v) -> v == null ? 1 : v + 1);
             }
         }
         final int meanCount = keyCount / nodeCount * rf.getFrom();
@@ -49,14 +51,14 @@ public class RingTest {
     }
 
     private void uniformDistribution(final int keyLen, final int keyCount, final int nodeCount, final int duplicateFactor, final float epsilon) {
-        final Topology<String> ring = createTopology(nodeCount, duplicateFactor);
+        final Topology<Address> ring = createTopology(nodeCount, duplicateFactor);
         final Map<String, Integer> counter = new HashMap<>();
         final Random random = new Random();
         for (int i = 0; i < keyCount; i++) {
             final byte[] key = new byte[keyLen];
             random.nextBytes(key);
-            final String node = ring.primaryFor(ByteBuffer.wrap(key));
-            counter.compute(node, (k, v) -> v == null ? 1 : v + 1);
+            final Address node = ring.primaryFor(ByteBuffer.wrap(key));
+            counter.compute(node.toString(), (k, v) -> v == null ? 1 : v + 1);
         }
         final int meanCount = keyCount / nodeCount;
 
@@ -65,12 +67,12 @@ public class RingTest {
         });
     }
 
-    private Topology<String> createTopology(final int nodeCount, final int duplicateFactor) {
+    private Topology<Address> createTopology(final int nodeCount, final int duplicateFactor) {
         final Set<String> nodes = new HashSet<>();
-        final String me = "node_0";
+        final String me = HOST + 0;
         nodes.add(me);
         for (int i = 1; i < nodeCount; i++) {
-            nodes.add("node_" + i);
+            nodes.add(HOST + i);
         }
         return new Ring(nodes, me, duplicateFactor);
     }

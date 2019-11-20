@@ -6,10 +6,8 @@ import one.nio.http.Param;
 import one.nio.http.Path;
 import one.nio.http.Request;
 import one.nio.http.Response;
-import one.nio.http.HttpClient;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpServerConfig;
-import one.nio.net.ConnectionString;
 import one.nio.net.Socket;
 import one.nio.server.AcceptorConfig;
 import one.nio.server.RejectedSessionException;
@@ -23,16 +21,14 @@ import ru.mail.polis.service.Service;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.Executor;
 
-public class ShardedService<T> extends HttpServer implements Service {
+public class ShardedService extends HttpServer implements Service {
     private static final Logger log = LoggerFactory.getLogger(ShardedService.class);
     private final AdvancedDAO dao;
     private final Replicas quorum;
-    private final Replicator<T> replicator;
+    private final Replicator replicator;
 
     /**
      * Async sharded Http Rest Service.
@@ -45,19 +41,11 @@ public class ShardedService<T> extends HttpServer implements Service {
     public ShardedService(final int port,
                           @NotNull final DAO dao,
                           @NotNull final Executor executor,
-                          @NotNull final Topology<T> nodes) throws IOException {
+                          @NotNull final Topology<Address> nodes) throws IOException {
         super(getConfig(port));
         this.dao = (AdvancedDAO) dao;
-        final Map<T, HttpClient> pool = new HashMap<>();
         this.quorum = Replicas.quorum(nodes.size());
-        for (final T node : nodes.all()) {
-            if (nodes.isMe(node)) {
-                continue;
-            }
-            assert !pool.containsKey(node);
-            pool.put(node, new HttpClient(new ConnectionString(node + "?timeout=100")));
-        }
-        replicator = new Replicator<T>(nodes, executor, pool, this.dao);
+        this.replicator = new AsyncReplicator(executor, nodes, this.dao);
     }
 
     private static HttpServerConfig getConfig(final int port) {
