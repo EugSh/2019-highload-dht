@@ -16,7 +16,7 @@ public class RingTest {
     private final String HOST = "http://test:";
 
     @Test
-    @RepeatedTest(1000)
+    @RepeatedTest(10)
     public void distribution() {
         uniformDistribution(8, 1_000, 1, 3, 0.15f);
         uniformDistribution(8, 10_000, 3, 3, 0.1f);
@@ -24,7 +24,7 @@ public class RingTest {
     }
 
     @Test
-    @RepeatedTest(1000)
+    @RepeatedTest(10)
     public void distributionRF() {
         uniformDistributionRF(8, 1_000, 1, 3, 0.15f, Replicas.parse("1/1"));
         uniformDistributionRF(8, 10_000, 3, 3, 0.1f, Replicas.parse("1/2"));
