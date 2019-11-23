@@ -86,7 +86,6 @@ public class MySuperDAO implements AdvancedDAO {
                     executor.execute(() -> exec(table));
                 } catch (InterruptedException e) {
                     interrupt();
-                    interrupt();
                     log.error("InterruptedException during flushing file", e);
                 }
             }
