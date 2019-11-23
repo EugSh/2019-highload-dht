@@ -1,6 +1,6 @@
 package ru.mail.polis.shkalev;
 
-public interface MyList<T> {
+interface MyList<T> {
     boolean add(T t);
 
     int size();

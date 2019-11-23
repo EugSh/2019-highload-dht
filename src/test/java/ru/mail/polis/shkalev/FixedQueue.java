@@ -2,7 +2,7 @@ package ru.mail.polis.shkalev;
 
 import java.util.LinkedList;
 
-public class FixedQueue<T> implements MyList<T> {
+class FixedQueue<T> implements MyList<T> {
     private final int maxSize;
     private final LinkedList<T> delegate;
 

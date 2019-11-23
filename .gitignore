@@ -16,6 +16,7 @@
 !wrk/*
 !wrk/stage5/*
 !wrk/stage6/*
+!testing/*
 
 # ...even if they are in subdirectories
 !*/

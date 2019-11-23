@@ -13,9 +13,11 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
@@ -63,34 +65,49 @@ public class MySuperDAO implements AdvancedDAO {
     }
 
     class Worker extends Thread {
-        Worker() {
-            super("worker");
+        private final ExecutorService executor;
+
+        Worker(final int number) {
+            super("Flusher-" + number);
+            executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
+                    new ThreadFactoryBuilder().setNameFormat("asyncFlusher").build());
         }
 
         @Override
         public void run() {
-            boolean poisoned = false;
-            boolean compacting = false;
-            while (!poisoned && !isInterrupted()) {
+            AtomicBoolean poisoned = new AtomicBoolean(false);
+            while (poisoned.compareAndSet(false, false) && !isInterrupted()) {
                 try {
                     final TableToFlush table = memoryTable.takeToFlush();
-                    dump(table.getTable(), table.getFileIndex());
-                    compacting = table.isCompacting();
-                    if (compacting) {
-                        final Table compactingTable = Utils.compactFiles(rootDir, tables);
-                        tables.clear();
-                        fileIndex.set(Utils.START_FILE_INDEX + 1);
-                        tables.put(fileIndex.get(), compactingTable);
-                        memoryTable.compacted();
-                    }
-                    poisoned = table.isPoisonPill();
-                    memoryTable.flushed(table.getFileIndex());
+                    poisoned.set(table.isPoisonPill());
+                    executor.execute(() -> {
+                        try {
+                            final boolean compacting = table.isCompacting();
+                            dump(table.getTable(), table.getFileIndex());
+                            log.info("dump");
+                            if (compacting) {
+                                final Table compactingTable = Utils.compactFiles(rootDir, tables);
+                                tables.clear();
+                                fileIndex.set(Utils.START_FILE_INDEX + 1);
+                                tables.put(fileIndex.get(), compactingTable);
+                                memoryTable.compacted();
+                            }
+                            memoryTable.flushed(table.getFileIndex());
+                        } catch (IOException e) {
+                            log.error("IOException during flushing file", e);
+                        }
+
+                    });
                 } catch (InterruptedException e) {
                     log.error("InterruptedException during flushing file", e);
                     interrupt();
-                } catch (IOException e) {
-                    log.error("IOException during flushing file", e);
                 }
+            }
+            executor.shutdown();
+            try {
+                executor.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                log.error("InterruptedException during termination executor for flushing", e);
             }
         }
     }
@@ -119,7 +136,7 @@ public class MySuperDAO implements AdvancedDAO {
             }
         });
         this.memoryTable = new MemoryTablePool(maxHeap, fileIndex);
-        this.worker = new Worker();
+        this.worker = new Worker(1);
         this.worker.start();
     }
 
@@ -153,6 +170,7 @@ public class MySuperDAO implements AdvancedDAO {
 
     @Override
     public void close() throws IOException {
+//        log.info("перед close");
         memoryTable.close();
         try {
             worker.join();

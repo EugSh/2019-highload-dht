@@ -1,0 +1,30 @@
+Для начала стрелял от 1 до 5000 put запросами, чтобы определить максимальное число запросов в секунду, пока все не упало.
+Результаты стрельбы - https://overload.yandex.net/229629#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574404947&slider_end=1574405193
+а потом либо ошибки FileException, либо SocketException слишком много открытых файло.
+Тестирование на постоянной нагрузке делал на 2500
+Вот результаты - https://overload.yandex.net/230256#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574526345&slider_end=1574526645
+
+Затем проводил тесты для put запросов, где есть перезапись 10% ключей. Нагрузка была 2500rps
+Вот результаты - https://overload.yandex.net/230267#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574526698&slider_end=1574526997
+
+Для третьего задание, я сначало заполнил базу необходимыми ключами.
+Вот результаты - https://overload.yandex.net/230284#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574527820&slider_end=1574528119
+Затем нашел максимальное число get запросов.
+Вот результаты - https://overload.yandex.net/230290#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574528158&slider_end=1574528239
+Получилось 900rps.
+Затем на нагрузке 700 стрелял get запросами
+Вот результаты - https://overload.yandex.net/230316#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574529871&slider_end=1574530171
+Большая задержка обусловлена тем, что это get запросы, те нужно построить итератор, что не быстро.
+
+Для четвертого задания сначала заполнил базу необходимыми ключами, потом нашел максимально число get запросов, и стрелял на постоянной нагрузке
+Результаты заполнения - https://overload.yandex.net/230334#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574531272&slider_end=1574531572
+Результаты поиска макс запросов в сек - https://overload.yandex.net/230337#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574531625&slider_end=1574531682
+Результаты - https://overload.yandex.net/230339#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574531720&slider_end=1574532020
+
+Для пятого задания нашел максимальное число запросов в секунду. Потом просто стрелял на постоянной нагрузке
+Результаты - https://overload.yandex.net/230350#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574532249&slider_end=1574532456
+
+Стрельбы:
+https://overload.yandex.net/230355#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574532550&slider_end=1574532856
+https://overload.yandex.net/230409#tab=test_data&tags=&plot_groups=main&machines=&metrics=&slider_start=1574537185&slider_end=1574537497
+В конце есть задержки, потому что делаются get запросы, которые долго обрабатываются.

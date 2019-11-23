@@ -90,6 +90,7 @@ public class ShardedService extends HttpServer implements Service {
                 replicator.executeGet(session, request, key, isProxy, rf);
                 break;
             case Request.METHOD_PUT:
+//                log.info(String.valueOf(request));
                 replicator.executePut(session, request, key, isProxy, rf);
                 break;
             case Request.METHOD_DELETE:

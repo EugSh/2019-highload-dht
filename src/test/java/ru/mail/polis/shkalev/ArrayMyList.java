@@ -3,7 +3,7 @@ package ru.mail.polis.shkalev;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ArrayMyList<T> implements MyList<T> {
+class ArrayMyList<T> implements MyList<T> {
     private final List<T> delegate;
 
     private ArrayMyList(final int size) {

@@ -14,7 +14,7 @@ public class HttpRequestCreator {
     private final String key;
     private final byte[] body;
     private final int codeStatus;
-    private static final Duration TIME_OUT = Duration.ofSeconds(2);
+    static final Duration TIME_OUT = Duration.ofSeconds(1);
 
     HttpRequestCreator(@NotNull final Replicas rf, @NotNull final ByteBuffer key,
                        @NotNull final Request request, final int codeStatus) {

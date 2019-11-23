@@ -34,7 +34,7 @@ public class MemoryTablePool implements Table, Closeable {
         this.maxHeap = maxHeap;
         this.current = new MemoryTable();
         this.tableForFlush = new ConcurrentSkipListMap<>();
-        this.flushQueue = new ArrayBlockingQueue<>(2);
+        this.flushQueue = new ArrayBlockingQueue<>(4);
         this.fileIndex = fileIndex;
     }
 

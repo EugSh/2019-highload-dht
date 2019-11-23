@@ -14,8 +14,7 @@ public class AmmoGenerator {
     private static final int VALUE_LEN = 256;
     private static final Random RANDOM = new Random();
     private static final float DEFAULT_REP_PROB = 0.1f;
-    private static final float NOT_REPEAT = 1.1f;//для того, чтобы все ключи каждый раз генерировались случайно
-    private static final float ALL_REPEAT = 0f; //для того, чтобы все ключи генерировались из списка старых ключей
+    private static final float ALL_REPEAT = 1f;//для того, чтобы все ключи генерировались из списка старых ключей
 
     private static String randomKey() {
         return Long.toHexString(ThreadLocalRandom.current().nextLong());
@@ -23,7 +22,7 @@ public class AmmoGenerator {
 
     private static String randomKey(final float repeatProbability, @NotNull final MyList<String> oldKeys) {
         final float repeat = RANDOM.nextFloat();
-        if (Float.compare(repeat, repeatProbability) < 0 && oldKeys.size() != 0) {
+        if (Float.compare(repeat, repeatProbability) <= 0 && oldKeys.size() != 0) {
             return oldKeys.get(RANDOM.nextInt(oldKeys.size()));
         }
         return randomKey();
@@ -91,7 +90,7 @@ public class AmmoGenerator {
              final FileOutputStream fGet = new FileOutputStream(dir + "/get3.txt")) {
             final MyList<String> oldKeys = ArrayMyList.create(count);
             for (int i = 0; i < count; i++) {
-                final String key = randomKey(NOT_REPEAT, oldKeys);
+                final String key = randomKey();
                 oldKeys.add(key);
                 final byte[] value = randomValue(VALUE_LEN);
                 putTo(fPut, key, value);
@@ -126,22 +125,14 @@ public class AmmoGenerator {
             int countGet = 0;
             for (int i = 0; i < count; i++) {
                 if (RANDOM.nextBoolean() && oldKeys.size() != 0) {
-//                    final String key = randomKey();
-//                    oldKeys.add(key);
-//                    final byte[] value = randomValue(VALUE_LEN);
-//                    putTo(out, key, value);
                     countGet++;
                     final String key = randomKey(ALL_REPEAT, oldKeys);
-                    oldKeys.add(key);
                     getTo(out, key);
                 } else {
                     final String key = randomKey();
                     oldKeys.add(key);
                     final byte[] value = randomValue(VALUE_LEN);
                     putTo(out, key, value);
-//                    final String key = randomKey(ALL_REPEAT, oldKeys);
-//                    oldKeys.add(key);
-//                    getTo(out, key);
                 }
             }
             log.info("count of get = [{}]", countGet);
@@ -149,7 +140,7 @@ public class AmmoGenerator {
     }
 
     public static void main(String[] args) throws IOException {
-        int count = 1_000_000;
+        int count = 540030;
         String dir = "ammo";
         String task = "5";
         if (args.length != 3) {
@@ -183,7 +174,6 @@ public class AmmoGenerator {
                 break;
             default:
                 System.out.println("Unsupported task " + task);
-
         }
     }
 }

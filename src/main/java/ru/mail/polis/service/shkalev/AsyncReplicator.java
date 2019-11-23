@@ -39,6 +39,7 @@ public class AsyncReplicator implements Replicator {
     private final AdvancedDAO dao;
     private final HttpClient client;
     private final Executor executor;
+    private static final Duration TIME_OUT = HttpRequestCreator.TIME_OUT;
 
     /**
      * Class for replication of request to other nodes.
@@ -56,7 +57,7 @@ public class AsyncReplicator implements Replicator {
         final Executor clientExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
                 new ThreadFactoryBuilder().setNameFormat("asyncHttpClient").build());
         this.client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(1))
+                .connectTimeout(TIME_OUT)
                 .executor(clientExecutor)
                 .build();
     }
