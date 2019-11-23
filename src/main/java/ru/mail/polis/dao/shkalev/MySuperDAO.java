@@ -68,50 +68,35 @@ public class MySuperDAO implements AdvancedDAO {
     }
 
     class Worker extends Thread {
-        private final ExecutorService executor;
 
         Worker(final int number) {
             super("Flusher-" + number);
-            executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
-                    new ThreadFactoryBuilder().setNameFormat("asyncFlusher").build());
         }
 
         @Override
         public void run() {
-            final AtomicBoolean poisoned = new AtomicBoolean(false);
-            while (poisoned.compareAndSet(false, false) && !isInterrupted()) {
+            boolean poisoned = false;
+            boolean compacting = false;
+            while (!poisoned && !isInterrupted()) {
                 try {
                     final TableToFlush table = memoryTable.takeToFlush();
-                    poisoned.set(table.isPoisonPill());
-                    executor.execute(() -> exec(table));
+                    dump(table.getTable(), table.getFileIndex());
+                    compacting = table.isCompacting();
+                    if (compacting) {
+                        final Table compactingTable = Utils.compactFiles(rootDir, tables);
+                        tables.clear();
+                        fileIndex.set(Utils.START_FILE_INDEX + 1);
+                        tables.put(fileIndex.get(), compactingTable);
+                        memoryTable.compacted();
+                    }
+                    poisoned = table.isPoisonPill();
+                    memoryTable.flushed(table.getFileIndex());
                 } catch (InterruptedException e) {
-                    interrupt();
                     log.error("InterruptedException during flushing file", e);
+                    interrupt();
+                } catch (IOException e) {
+                    log.error("IOException during flushing file", e);
                 }
-            }
-            executor.shutdown();
-            try {
-                executor.awaitTermination(10, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                log.error("InterruptedException during termination executor for flushing", e);
-                interrupt();
-            }
-        }
-
-        private void exec(final TableToFlush table) {
-            try {
-                final boolean compacting = table.isCompacting();
-                dump(table.getTable(), table.getFileIndex());
-                if (compacting) {
-                    final Table compactingTable = Utils.compactFiles(rootDir, tables);
-                    tables.clear();
-                    fileIndex.set(Utils.START_FILE_INDEX + 1);
-                    tables.put(fileIndex.get(), compactingTable);
-                    memoryTable.compacted();
-                }
-                memoryTable.flushed(table.getFileIndex());
-            } catch (IOException e) {
-                log.error("IOException during flushing file", e);
             }
         }
     }
