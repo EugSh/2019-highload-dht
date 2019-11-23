@@ -85,8 +85,8 @@ public class MySuperDAO implements AdvancedDAO {
                     poisoned.set(table.isPoisonPill());
                     executor.execute(() -> exec(table));
                 } catch (InterruptedException e) {
-                    log.error("InterruptedException during flushing file", e);
                     interrupt();
+                    log.error("InterruptedException during flushing file", e);
                 }
             }
             executor.shutdown();
@@ -97,7 +97,7 @@ public class MySuperDAO implements AdvancedDAO {
             }
         }
 
-        private void exec(final TableToFlush table){
+        private void exec(final TableToFlush table) {
             try {
                 final boolean compacting = table.isCompacting();
                 dump(table.getTable(), table.getFileIndex());
