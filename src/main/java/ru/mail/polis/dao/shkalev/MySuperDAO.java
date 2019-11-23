@@ -13,7 +13,10 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -170,7 +173,6 @@ public class MySuperDAO implements AdvancedDAO {
 
     @Override
     public void close() throws IOException {
-//        log.info("перед close");
         memoryTable.close();
         try {
             worker.join();

@@ -207,12 +207,12 @@ public class AsyncReplicator implements Replicator {
                 return;
             }
             lock.lock();
-            try{
-                if (res.size() >= min){
+            try {
+                if (res.size() >= min) {
                     return;
                 }
                 res.add(r);
-                if (res.size() == min){
+                if (res.size() == min) {
                     future.complete(res);
                 }
             } finally {
