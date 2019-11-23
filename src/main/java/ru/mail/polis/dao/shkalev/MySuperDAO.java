@@ -78,28 +78,12 @@ public class MySuperDAO implements AdvancedDAO {
 
         @Override
         public void run() {
-            AtomicBoolean poisoned = new AtomicBoolean(false);
+            final AtomicBoolean poisoned = new AtomicBoolean(false);
             while (poisoned.compareAndSet(false, false) && !isInterrupted()) {
                 try {
                     final TableToFlush table = memoryTable.takeToFlush();
                     poisoned.set(table.isPoisonPill());
-                    executor.execute(() -> {
-                        try {
-                            final boolean compacting = table.isCompacting();
-                            dump(table.getTable(), table.getFileIndex());
-                            if (compacting) {
-                                final Table compactingTable = Utils.compactFiles(rootDir, tables);
-                                tables.clear();
-                                fileIndex.set(Utils.START_FILE_INDEX + 1);
-                                tables.put(fileIndex.get(), compactingTable);
-                                memoryTable.compacted();
-                            }
-                            memoryTable.flushed(table.getFileIndex());
-                        } catch (IOException e) {
-                            log.error("IOException during flushing file", e);
-                        }
-
-                    });
+                    executor.execute(() -> exec(table));
                 } catch (InterruptedException e) {
                     log.error("InterruptedException during flushing file", e);
                     interrupt();
@@ -110,6 +94,23 @@ public class MySuperDAO implements AdvancedDAO {
                 executor.awaitTermination(10, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 log.error("InterruptedException during termination executor for flushing", e);
+            }
+        }
+
+        private void exec(final TableToFlush table){
+            try {
+                final boolean compacting = table.isCompacting();
+                dump(table.getTable(), table.getFileIndex());
+                if (compacting) {
+                    final Table compactingTable = Utils.compactFiles(rootDir, tables);
+                    tables.clear();
+                    fileIndex.set(Utils.START_FILE_INDEX + 1);
+                    tables.put(fileIndex.get(), compactingTable);
+                    memoryTable.compacted();
+                }
+                memoryTable.flushed(table.getFileIndex());
+            } catch (IOException e) {
+                log.error("IOException during flushing file", e);
             }
         }
     }
