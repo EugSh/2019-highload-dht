@@ -16,11 +16,11 @@
 
 package ru.mail.polis.dao;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.jetbrains.annotations.NotNull;
 import ru.mail.polis.dao.shkalev.MySuperDAO;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Custom {@link DAO} factory.
@@ -54,6 +54,6 @@ public final class DAOFactory {
             throw new IllegalArgumentException("Path is not a directory: " + data);
         }
 
-        return new MySuperDAO(512 * 512, data);
+        return new MySuperDAO(256 * 256, data);
     }
 }
