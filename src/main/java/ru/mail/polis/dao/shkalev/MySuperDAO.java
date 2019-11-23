@@ -87,7 +87,6 @@ public class MySuperDAO implements AdvancedDAO {
                         try {
                             final boolean compacting = table.isCompacting();
                             dump(table.getTable(), table.getFileIndex());
-                            log.info("dump");
                             if (compacting) {
                                 final Table compactingTable = Utils.compactFiles(rootDir, tables);
                                 tables.clear();
