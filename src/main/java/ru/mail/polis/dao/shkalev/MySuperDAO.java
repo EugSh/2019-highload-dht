@@ -91,10 +91,10 @@ public class MySuperDAO implements AdvancedDAO {
             }
             executor.shutdown();
             try {
-                    executor.awaitTermination(10, TimeUnit.SECONDS);
+                executor.awaitTermination(10, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 log.error("InterruptedException during termination executor for flushing", e);
-                e.printStackTrace();
+                interrupt();
             }
         }
 

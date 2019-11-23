@@ -54,6 +54,6 @@ public final class DAOFactory {
             throw new IllegalArgumentException("Path is not a directory: " + data);
         }
 
-        return new MySuperDAO(512 * 1024, data);
+        return new MySuperDAO(512 * 512, data);
     }
 }
